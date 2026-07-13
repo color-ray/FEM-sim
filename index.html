@@ -153,7 +153,7 @@
 
     <section class="panel">
       <div class="panel-title">View</div>
-      <label for="heightScale">3D 높이 배율</label><input id="heightScale" type="range" min="20" max="500" step="10" value="200"><div class="value-line"><span>시각적 높이</span><span id="heightScaleValue">200</span></div>
+      <label for="heightScale">3D 높이 배율</label><input id="heightScale" type="range" min="20" max="240" step="5" value="100"><div class="value-line"><span>시각적 높이</span><span id="heightScaleValue">100</span></div>
       <label for="normalization">높이 표시</label><select id="normalization"><option value="auto">프레임별 자동 정규화</option><option value="fixed">초기 진폭 기준</option></select>
       <label for="meshOpacity">Mesh 선명도</label><input id="meshOpacity" type="range" min="0" max="1" step="0.05" value="0.35"><div class="value-line"><span>요소 경계</span><span id="meshOpacityValue">0.35</span></div>
     </section>
@@ -208,7 +208,8 @@ let nodes=[], triangles=[], edges=[], boundaryNodes=new Set();
 let mass=[], stiffness=[];
 let u=[], uPrev=[], initialAmplitude=1;
 let runMode="idle", simTime=0, eigenVisualTime=0, lastFrame=performance.now(), accumulator=0;
-let rotX=1.08, rotZ=0.68, zoom=1, draggingView=false, lastViewPoint=null;
+let rotX=.92, rotZ=.68, zoom=1, draggingView=false, lastViewPoint=null;
+let lastRenderFloorZ=-120;
 let eigen={ready:false, lambda:0, vector:[], residual:NaN, mode:0, omega0:0, frequency:0, period:Infinity};
 
 function setStatus(label, kind="") {
@@ -474,8 +475,14 @@ function updateEigenFromVisualTime(visualTime){
 }
 
 function project(x,y,z){
-  const cz=Math.cos(rotZ),sz=Math.sin(rotZ),x1=x*cz-y*sz,y1=x*sz+y*cz,cx=Math.cos(rotX),sx=Math.sin(rotX),y2=y1*cx-z*sx,z2=y1*sx+z*cx,p=760/Math.max(160,760-z2);
-  return {x:viewW/2+x1*p*zoom,y:viewH/2+y2*p*zoom,d:z2};
+  const cz=Math.cos(rotZ), sz=Math.sin(rotZ);
+  const x1=x*cz-y*sz, y1=x*sz+y*cz;
+  const cx=Math.cos(rotX), sx=Math.sin(rotX);
+  const y2=y1*cx-z*sx, z2=y1*sx+z*cx;
+  const cameraDistance=900;
+  const denom=Math.max(420,cameraDistance-z2);
+  const perspective=cameraDistance/denom;
+  return {x:viewW/2+x1*perspective*zoom,y:viewH/2+y2*perspective*zoom,d:z2};
 }
 function color(v){const x=Math.max(-1,Math.min(1,v));if(x<0){const t=-x;return `rgb(${Math.round(23+42*(1-t))},${Math.round(59+85*(1-t))},${Math.round(143+112*(1-t))})`;}const t=x;return `rgb(${Math.round(215+40*t)},${Math.round(232-145*t)},${Math.round(255-190*t)})`;}
 function render2D(){
@@ -484,13 +491,101 @@ function render2D(){
   if(boundary.length>1){dctx.save();dctx.lineJoin="round";dctx.lineCap="round";dctx.lineWidth=2.5;dctx.strokeStyle="#f1f5f9";dctx.beginPath();dctx.moveTo(boundary[0].x,boundary[0].y);for(let i=1;i<boundary.length;i++)dctx.lineTo(boundary[i].x,boundary[i].y);dctx.stroke();if(!drawing){dctx.fillStyle="rgba(20,118,255,.06)";dctx.closePath();dctx.fill();}dctx.restore();}
   if(boundaryNodes.size){dctx.save();dctx.fillStyle=isDirichlet()?"#ff7b8d":"#4aa3ff";for(const i of boundaryNodes){dctx.beginPath();dctx.arc(nodes[i].x,nodes[i].y,1.6,0,2*Math.PI);dctx.fill();}dctx.restore();}
 }
-function renderGrid3D(){vctx.save();vctx.strokeStyle="rgba(102,128,163,.10)";vctx.lineWidth=1;const s=380,step=32;for(let x=-s;x<=s;x+=step){const a=project(x,-s,0),b=project(x,s,0);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();}for(let y=-s;y<=s;y+=step){const a=project(-s,y,0),b=project(s,y,0);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();}vctx.restore();}
+function renderGrid3D(floorZ){
+  vctx.save();
+  vctx.strokeStyle="rgba(92,126,170,.13)";
+  vctx.lineWidth=1;
+  const s=420,step=32;
+  for(let x=-s;x<=s;x+=step){
+    const a=project(x,-s,floorZ),b=project(x,s,floorZ);
+    vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();
+  }
+  for(let y=-s;y<=s;y+=step){
+    const a=project(-s,y,floorZ),b=project(s,y,floorZ);
+    vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();
+  }
+  const o=project(0,0,floorZ),xp=project(110,0,floorZ),yp=project(0,110,floorZ),zp=project(0,0,floorZ+110);
+  vctx.lineWidth=1.6;
+  [[xp,"rgba(69,140,255,.72)"],[yp,"rgba(71,207,151,.62)"],[zp,"rgba(255,112,132,.65)"]].forEach(([pt,col])=>{vctx.strokeStyle=col;vctx.beginPath();vctx.moveTo(o.x,o.y);vctx.lineTo(pt.x,pt.y);vctx.stroke();});
+  vctx.restore();
+}
 function render3D(){
-  vctx.clearRect(0,0,viewW,viewH);const g=vctx.createRadialGradient(viewW*.5,viewH*.34,20,viewW*.5,viewH*.5,Math.max(viewW,viewH));g.addColorStop(0,"#111a29");g.addColorStop(1,"#020304");vctx.fillStyle=g;vctx.fillRect(0,0,viewW,viewH);renderGrid3D();
-  if(!nodes.length){vctx.fillStyle="rgba(210,222,239,.72)";vctx.font="14px system-ui";vctx.textAlign="center";vctx.fillText("Mesh를 생성하면 변위장이 표시됩니다.",viewW/2,viewH/2);return;}
-  const cx=nodes.reduce((s,p)=>s+p.x,0)/nodes.length,cy=nodes.reduce((s,p)=>s+p.y,0)/nodes.length,frameMax=Math.max(maxAbs(u),1e-12),den=controls.normalization.value==="auto"?frameMax:initialAmplitude,hs=Number(controls.heightScale.value),proj=nodes.map((p,i)=>project(p.x-cx,-(p.y-cy),(u[i]/Math.max(den,1e-12))*hs));
-  const faces=triangles.map(t=>({t,d:(proj[t[0]].d+proj[t[1]].d+proj[t[2]].d)/3,v:(u[t[0]]+u[t[1]]+u[t[2]])/(3*Math.max(den,1e-12))})).sort((a,b)=>a.d-b.d),op=Number(controls.meshOpacity.value);
-  for(const f of faces){const a=proj[f.t[0]],b=proj[f.t[1]],c=proj[f.t[2]];vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.lineTo(c.x,c.y);vctx.closePath();vctx.fillStyle=color(f.v);vctx.fill();if(op>0){vctx.strokeStyle=`rgba(3,8,16,${op})`;vctx.lineWidth=.65;vctx.stroke();}}
+  vctx.clearRect(0,0,viewW,viewH);
+  const g=vctx.createRadialGradient(viewW*.5,viewH*.34,20,viewW*.5,viewH*.5,Math.max(viewW,viewH));
+  g.addColorStop(0,"#111a29");g.addColorStop(1,"#020304");
+  vctx.fillStyle=g;vctx.fillRect(0,0,viewW,viewH);
+
+  const requestedHs=Number(controls.heightScale.value);
+  const minX=Math.min(...nodes.map(p=>p.x)), maxX=Math.max(...nodes.map(p=>p.x));
+  const minY=Math.min(...nodes.map(p=>p.y)), maxY=Math.max(...nodes.map(p=>p.y));
+  const domainSpan=Math.max(maxX-minX,maxY-minY,1);
+  // 높이가 영역 크기에 비해 지나치게 커져 표면이 수직 벽처럼 깨져 보이는 것을 방지한다.
+  const hs=Math.min(requestedHs,Math.max(28,domainSpan*.38));
+  const floorZ=-Math.max(36,hs*.55);
+  lastRenderFloorZ=floorZ;
+  renderGrid3D(floorZ);
+
+  if(!nodes.length){
+    vctx.fillStyle="rgba(210,222,239,.72)";vctx.font="14px system-ui";vctx.textAlign="center";
+    vctx.fillText("Mesh를 생성하면 변위장이 표시됩니다.",viewW/2,viewH/2);return;
+  }
+
+  const cx=nodes.reduce((s,p)=>s+p.x,0)/nodes.length;
+  const cy=nodes.reduce((s,p)=>s+p.y,0)/nodes.length;
+  const frameMax=Math.max(maxAbs(u),1e-12);
+  const den=controls.normalization.value==="auto"?frameMax:Math.max(initialAmplitude,1e-12);
+  const world=nodes.map((p,i)=>{
+    const raw=(u[i]/den)*hs;
+    const z=Math.max(-hs,Math.min(hs,raw));
+    return {x:p.x-cx,y:-(p.y-cy),z};
+  });
+  const proj=world.map(p=>project(p.x,p.y,p.z));
+
+  // 표면 아래에 희미한 투영 그림자를 그려, 진폭이 0인 순간에도 3D 기준면을 유지한다.
+  const floorProj=world.map(p=>project(p.x,p.y,floorZ));
+  vctx.save();
+  vctx.fillStyle="rgba(31,91,180,.075)";
+  vctx.strokeStyle="rgba(65,132,238,.10)";
+  vctx.lineWidth=.45;
+  for(const t of triangles){
+    const a=floorProj[t[0]],b=floorProj[t[1]],c=floorProj[t[2]];
+    vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.lineTo(c.x,c.y);vctx.closePath();vctx.fill();
+  }
+  vctx.restore();
+
+  const light={x:-.35,y:-.45,z:.82};
+  const faces=triangles.map(t=>{
+    const A=world[t[0]],B=world[t[1]],C=world[t[2]];
+    const ux=B.x-A.x,uy=B.y-A.y,uz=B.z-A.z;
+    const vx=C.x-A.x,vy=C.y-A.y,vz=C.z-A.z;
+    let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    const nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
+    const shade=.46+.54*Math.max(0,nx*light.x+ny*light.y+nz*light.z);
+    return {t,d:(proj[t[0]].d+proj[t[1]].d+proj[t[2]].d)/3,v:(u[t[0]]+u[t[1]]+u[t[2]])/(3*den),shade};
+  }).sort((a,b)=>a.d-b.d);
+
+  const op=Number(controls.meshOpacity.value);
+  for(const f of faces){
+    const a=proj[f.t[0]],b=proj[f.t[1]],c=proj[f.t[2]];
+    vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.lineTo(c.x,c.y);vctx.closePath();
+    const base=color(f.v);
+    vctx.fillStyle=shadeRgb(base,f.shade);vctx.fill();
+    if(op>0){vctx.strokeStyle=`rgba(3,8,16,${Math.max(.16,op)})`;vctx.lineWidth=.65;vctx.stroke();}
+  }
+
+  // 외곽선을 마지막에 그려 painter 정렬 경계가 깨져 보이는 현상을 줄인다.
+  vctx.save();vctx.strokeStyle="rgba(96,165,250,.82)";vctx.lineWidth=1.45;
+  for(const [a,b] of edges){
+    if(!boundaryNodes.has(a)||!boundaryNodes.has(b)) continue;
+    vctx.beginPath();vctx.moveTo(proj[a].x,proj[a].y);vctx.lineTo(proj[b].x,proj[b].y);vctx.stroke();
+  }
+  vctx.restore();
+}
+
+function shadeRgb(rgb,shade){
+  const m=rgb.match(/\d+/g);if(!m)return rgb;
+  const ambient=.34, k=ambient+(1-ambient)*Math.max(0,Math.min(1,shade));
+  return `rgb(${Math.round(Number(m[0])*k)},${Math.round(Number(m[1])*k)},${Math.round(Number(m[2])*k)})`;
 }
 
 function updateDiagnostics(){
@@ -523,6 +618,8 @@ function runSelfTests(){
   const eig=jacobiEigen([Float64Array.from([2,0]),Float64Array.from([0,5])]);
   const ev=eig.values.slice().sort((a,b)=>a-b);console.assert(Math.abs(ev[0]-2)<1e-9&&Math.abs(ev[1]-5)<1e-9,"Jacobi diagonal test failed");
   console.assert(Math.abs((1+0.2*.01)-(1+0.2*.01))<1e-15,"damping denominator test failed");
+  const topTest=project(0,0,100),floorTest=project(0,0,-100);
+  console.assert(Math.abs(topTest.y-floorTest.y)>20,"3D projection vertical separation failed");
   console.log("FEM Wave Laboratory self-tests passed");
 }
 
@@ -531,7 +628,7 @@ drawCanvas.addEventListener("pointerdown",e=>{if(interactionMode!=="draw")return
 drawCanvas.addEventListener("pointermove",e=>{if(!drawing)return;const p=pointer(e,drawCanvas),last=boundary[boundary.length-1];if(!last||dist(p,last)>3){boundary.push(p);render2D();}});
 window.addEventListener("pointerup",()=>{if(!drawing)return;drawing=false;if(boundary.length>8){const first=boundary[0],last=boundary[boundary.length-1];if(dist(first,last)>2)boundary.push({...first});message("영역이 준비되었습니다. Mesh 생성 / FEM 조립을 누르세요.");}else message("영역이 너무 작습니다. 더 크게 그리세요.");render2D();});
 viewCanvas.addEventListener("pointerdown",e=>{draggingView=true;lastViewPoint=pointer(e,viewCanvas);});
-window.addEventListener("pointermove",e=>{if(!draggingView)return;const p=pointer(e,viewCanvas),dx=p.x-lastViewPoint.x,dy=p.y-lastViewPoint.y;rotZ+=dx*.01;rotX-=dy*.01;rotX=Math.max(.18,Math.min(1.45,rotX));lastViewPoint=p;render3D();});
+window.addEventListener("pointermove",e=>{if(!draggingView)return;const p=pointer(e,viewCanvas),dx=p.x-lastViewPoint.x,dy=p.y-lastViewPoint.y;rotZ+=dx*.01;rotX-=dy*.01;rotX=Math.max(.58,Math.min(1.18,rotX));lastViewPoint=p;render3D();});
 window.addEventListener("pointerup",()=>{draggingView=false;});
 viewCanvas.addEventListener("wheel",e=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08;zoom=Math.max(.3,Math.min(3,zoom));render3D();},{passive:false});
 
