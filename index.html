@@ -145,7 +145,8 @@
     <section class="panel">
       <div class="panel-title">Eigenmode</div>
       <label for="modeIndex">선택 고유모드 번호</label><input id="modeIndex" type="range" min="1" max="40" step="1" value="2"><div class="value-line"><span>노이만 1번은 영모드 가능</span><span id="modeIndexValue">2</span></div>
-      <label for="eigenMaxDof">고윳값 계산 자유도</label><input id="eigenMaxDof" type="range" min="32" max="1000" step="8" value="1000"><div class="value-line"><span>최대 1000 · 매우 느릴 수 있음</span><span id="eigenMaxDofValue">1000</span></div>
+      <label for="eigenMaxDof">고윳값 계산 최대 자유도</label><input id="eigenMaxDof" type="range" min="100" max="1000" step="50" value="1000"><div class="value-line"><span>허용 자유도 상한 · 탐색 기저는 자동 최적화</span><span id="eigenMaxDofValue">1000</span></div>
+      <label for="eigenVisualPeriod">고유진동 화면 주기</label><input id="eigenVisualPeriod" type="range" min="1" max="12" step="0.5" value="5"><div class="value-line"><span>한 번 왕복하는 화면 시간</span><span id="eigenVisualPeriodValue">5.0 s</span></div>
       <button id="eigenSolveBtn">선택 고유모드 계산</button>
       <button id="eigenPlayBtn" class="secondary" disabled>고유모드 진동 시작</button>
     </section>
@@ -197,7 +198,7 @@ const dctx = drawCanvas.getContext("2d"), vctx = viewCanvas.getContext("2d");
 const controls = {
   boundaryType: $("boundaryType"), gridStep: $("gridStep"), maxNodes: $("maxNodes"),
   waveSpeed: $("waveSpeed"), scaleMm: $("scaleMm"), damping: $("damping"), timeScale: $("timeScale"),
-  modeIndex: $("modeIndex"), eigenMaxDof: $("eigenMaxDof"), heightScale: $("heightScale"),
+  modeIndex: $("modeIndex"), eigenMaxDof: $("eigenMaxDof"), eigenVisualPeriod: $("eigenVisualPeriod"), heightScale: $("heightScale"),
   normalization: $("normalization"), meshOpacity: $("meshOpacity")
 };
 
@@ -206,7 +207,7 @@ let boundary=[], drawing=false, interactionMode="draw";
 let nodes=[], triangles=[], edges=[], boundaryNodes=new Set();
 let mass=[], stiffness=[];
 let u=[], uPrev=[], initialAmplitude=1;
-let runMode="idle", simTime=0, lastFrame=performance.now(), accumulator=0;
+let runMode="idle", simTime=0, eigenVisualTime=0, lastFrame=performance.now(), accumulator=0;
 let rotX=1.08, rotZ=0.68, zoom=1, draggingView=false, lastViewPoint=null;
 let eigen={ready:false, lambda:0, vector:[], residual:NaN, mode:0, omega0:0, frequency:0, period:Infinity};
 
@@ -234,6 +235,7 @@ function updateLabels(){
   $("timeScaleValue").textContent=Number(controls.timeScale.value).toFixed(2)+"×";
   $("modeIndexValue").textContent=controls.modeIndex.value;
   $("eigenMaxDofValue").textContent=controls.eigenMaxDof.value;
+  $("eigenVisualPeriodValue").textContent=Number(controls.eigenVisualPeriod.value).toFixed(1)+" s";
   $("heightScaleValue").textContent=controls.heightScale.value;
   $("meshOpacityValue").textContent=Number(controls.meshOpacity.value).toFixed(2);
 }
@@ -251,7 +253,7 @@ function createCircle(){
   interactionMode="draw"; clearMesh(); message("원형 영역이 준비되었습니다. Mesh 생성 / FEM 조립을 누르세요."); render2D();
 }
 function clearMesh(){ nodes=[];triangles=[];edges=[];boundaryNodes=new Set();mass=[];stiffness=[];u=[];uPrev=[];eigen={ready:false,lambda:0,vector:[],residual:NaN,mode:0,omega0:0,frequency:0,period:Infinity}; $("eigenPlayBtn").disabled=true; updateDiagnostics();render3D(); }
-function stopAll(){ runMode="idle"; accumulator=0; $("waveBtn").textContent="일반 파동 시작"; $("eigenPlayBtn").textContent="고유모드 진동 시작"; }
+function stopAll(){ runMode="idle"; accumulator=0; eigenVisualTime=0; $("waveBtn").textContent="일반 파동 시작"; $("eigenPlayBtn").textContent="고유모드 진동 시작"; }
 
 function buildMesh(){
   if(boundary.length<8){ message("먼저 폐곡선을 그리세요."); return; }
@@ -390,7 +392,7 @@ function lanczosLowestModes(dofs,basisSize){
     T[i][i]=alpha[i];
     if(i<k-1){T[i][i+1]=beta[i]||0;T[i+1][i]=beta[i]||0;}
   }
-  const small=jacobiEigen(T,Math.max(300,k*k*20));
+  const small=jacobiEigen(T,Math.max(240,k*k*8));
   const converted=small.values.map(mu=>Math.max(0,rho-mu));
   const order=converted.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
   return {Q,values:converted,vectors:small.vectors,order,dofs};
@@ -404,13 +406,17 @@ function solveEigenmode(){
       const dofs=freeDofs(),n=dofs.length,modeNo=Number(controls.modeIndex.value);
       if(n<2){setStatus("자유도 부족","warn");message("고유값 계산에 필요한 자유도가 부족합니다.");return;}
       if(modeNo>n){setStatus("모드 번호 초과","warn");message("선택한 모드 번호가 자유도 수보다 큽니다.");return;}
-      const requested=Number(controls.eigenMaxDof.value);
-      const basisSize=Math.min(n,Math.max(modeNo+32,requested));
-      if(basisSize>=500){
-        message("고윳값 계산 자유도 "+basisSize+"로 계산합니다. 브라우저가 오래 멈춘 것처럼 보일 수 있습니다.");
-      } else if(basisSize>=192){
-        message("고윳값 계산 자유도 "+basisSize+"로 계산합니다. 노드가 많으면 시간이 걸릴 수 있습니다.");
+      const maxAllowed=Number(controls.eigenMaxDof.value);
+      if(n>maxAllowed){
+        setStatus("고유값 자유도 초과","warn");
+        message("현재 자유도는 "+n+"개입니다. 고윳값 계산 최대 자유도를 늘리거나 격자를 조금 크게 설정하세요.");
+        return;
       }
+      // 전체 자유도는 최대 1000까지 허용하지만, Lanczos 기저를 1000개 만들 필요는 없다.
+      // 낮은 고유모드는 선택 모드 번호보다 조금 큰 기저만으로 충분히 빠르게 근사된다.
+      const adaptiveExtra = modeNo <= 10 ? 28 : modeNo <= 30 ? 40 : 56;
+      const basisSize=Math.min(n,Math.max(40,modeNo+adaptiveExtra),180);
+      message("자유도 "+n+"개 중 Lanczos 기저 "+basisSize+"개로 빠르게 계산합니다.");
       const result=lanczosLowestModes(dofs,basisSize);
       if(result.order.length<modeNo){setStatus("고유모드 탐색 실패","warn");message("충분한 Lanczos 기저를 만들지 못했습니다. 탐색 깊이를 늘려 다시 계산하세요.");return;}
       const pick=result.order[modeNo-1],ritz=pick.i;
@@ -432,7 +438,7 @@ function solveEigenmode(){
       const mpp=Number(controls.scaleMm.value)/1000,c=Number(controls.waveSpeed.value);
       const lambdaPhysical=lambda/(mpp*mpp),omega0=c*Math.sqrt(lambdaPhysical),freq=omega0/(2*Math.PI);
       eigen={ready:true,lambda,vector:phi,residual:res,mode:modeNo,omega0,frequency:freq,period:freq>1e-14?1/freq:Infinity};
-      u=phi.slice();uPrev=phi.slice();initialAmplitude=Math.max(maxAbs(phi),1e-9);simTime=0;
+      u=phi.slice();uPrev=phi.slice();initialAmplitude=Math.max(maxAbs(phi),1e-9);simTime=0;eigenVisualTime=0;
       $("eigenPlayBtn").disabled=false;
       setStatus("고유모드 계산 완료","ok");
       message("고유모드 "+modeNo+"번 계산 완료. 이제 '고유모드 진동 시작'을 누르세요.");
@@ -458,7 +464,14 @@ function dampedModalFactor(t){
   if(Math.abs(g-w)<1e-10*Math.max(1,w))return Math.exp(-g*t)*(1+g*t);
   const s=Math.sqrt(g*g-w*w),r1=-g+s,r2=-g-s,A=-r2/(r1-r2),B=r1/(r1-r2);return A*Math.exp(r1*t)+B*Math.exp(r2*t);
 }
-function updateEigen(t){const q=dampedModalFactor(t);u=eigen.vector.map(v=>q*v);}
+function updateEigenFromVisualTime(visualTime){
+  const visualPeriod=Math.max(0.25,Number(controls.eigenVisualPeriod.value));
+  const physicalPeriod=Number.isFinite(eigen.period)&&eigen.period>1e-12?eigen.period:visualPeriod;
+  const physicalTime=visualTime*(physicalPeriod/visualPeriod);
+  simTime=physicalTime;
+  const q=dampedModalFactor(physicalTime);
+  u=eigen.vector.map(v=>q*v);
+}
 
 function project(x,y,z){
   const cz=Math.cos(rotZ),sz=Math.sin(rotZ),x1=x*cz-y*sz,y1=x*sz+y*cz,cx=Math.cos(rotX),sx=Math.sin(rotX),y2=y1*cx-z*sx,z2=y1*sx+z*cx,p=760/Math.max(160,760-z2);
@@ -486,6 +499,7 @@ function updateDiagnostics(){
   if(!nodes.length){$("stats").textContent="아직 영역이 생성되지 않았습니다.";return;}
   const btype=isDirichlet()?"Dirichlet 고정":"Neumann 자유",dofs=freeDofs().length,dt=stableDt();
   const lines=[`경계조건       ${btype}`,`노드 / 요소    ${nodes.length} / ${triangles.length}`,`경계 노드      ${boundaryNodes.size}`,`자유도          ${dofs}`,`안정 시간간격   ${dt.toExponential(3)} s`,`시뮬레이션 시간 ${simTime.toFixed(3)} s`,`실행 모드       ${runMode}`];
+  if(runMode==="eigen"&&eigen.ready) lines.push(`화면 진동 주기   ${Number(controls.eigenVisualPeriod.value).toFixed(1)} s`);
   if(eigen.ready){lines.push("",`고유모드 번호   ${eigen.mode}`,`고윳값 λ(px⁻²) ${eigen.lambda.toExponential(6)}`,`각진동수 ω₀    ${eigen.omega0.toFixed(6)} rad/s`,`주파수 f       ${eigen.frequency.toFixed(6)} Hz`,`주기 T         ${Number.isFinite(eigen.period)?eigen.period.toFixed(6):"∞"} s`,`상대 잔차      ${eigen.residual.toExponential(3)}`,`잔차 판정       ${eigen.residual<1e-6?"매우 좋음":eigen.residual<1e-4?"양호":"점검 필요"}`);}
   $("stats").textContent=lines.join("\n");
 }
@@ -493,7 +507,11 @@ function updateDiagnostics(){
 function animate(now){
   const elapsed=Math.min(.05,(now-lastFrame)/1000)*Number(controls.timeScale.value);lastFrame=now;
   if(runMode==="wave"&&nodes.length){const dt=stableDt();accumulator+=elapsed;let guard=0;while(accumulator>=dt&&guard<20){stepWave(dt);accumulator-=dt;guard++;}render3D();updateDiagnostics();}
-  else if(runMode==="eigen"&&eigen.ready){simTime+=elapsed;updateEigen(simTime);render3D();updateDiagnostics();}
+  else if(runMode==="eigen"&&eigen.ready){
+    eigenVisualTime+=Math.min(elapsed,0.05);
+    updateEigenFromVisualTime(eigenVisualTime);
+    render3D();updateDiagnostics();
+  }
   requestAnimationFrame(animate);
 }
 
@@ -524,7 +542,19 @@ $("waveBtn").addEventListener("click",()=>{if(!nodes.length){message("먼저 Mes
 $("pulseBtn").addEventListener("click",addPulse);
 $("resetBtn").addEventListener("click",()=>{stopAll();boundary=[];interactionMode="draw";clearMesh();message("초기화되었습니다.");render2D();setStatus("대기");});
 $("eigenSolveBtn").addEventListener("click",solveEigenmode);
-$("eigenPlayBtn").addEventListener("click",()=>{if(!eigen.ready)return;runMode=runMode==="eigen"?"idle":"eigen";simTime=0;if(runMode==="eigen"){$("eigenPlayBtn").textContent="고유모드 진동 정지";$("waveBtn").textContent="일반 파동 시작";}else $("eigenPlayBtn").textContent="고유모드 진동 시작";updateDiagnostics();});
+$("eigenPlayBtn").addEventListener("click",()=>{
+  if(!eigen.ready)return;
+  runMode=runMode==="eigen"?"idle":"eigen";
+  simTime=0;eigenVisualTime=0;
+  if(runMode==="eigen"){
+    controls.normalization.value="fixed";
+    $("eigenPlayBtn").textContent="고유모드 진동 정지";
+    $("waveBtn").textContent="일반 파동 시작";
+    updateEigenFromVisualTime(0);
+    render3D();
+  }else $("eigenPlayBtn").textContent="고유모드 진동 시작";
+  updateDiagnostics();
+});
 controls.boundaryType.addEventListener("change",()=>{if(nodes.length){buildMesh();}else render2D();});
 Object.values(controls).forEach(el=>el.addEventListener("input",()=>{updateLabels();render3D();updateDiagnostics();}));
 window.addEventListener("resize",resize);
