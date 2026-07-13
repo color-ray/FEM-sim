@@ -1,1225 +1,392 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FEM Wave Laboratory - Drawn Domain</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FEM Wave Laboratory - Verified Edition</title>
   <style>
     :root {
-      --bg0: #02030a;
-      --bg1: #050812;
-      --bg2: #0a1020;
-      --card: rgba(10, 16, 32, 0.92);
-      --card2: rgba(7, 11, 22, 0.96);
-      --line: rgba(96, 165, 250, 0.18);
-      --line2: rgba(147, 197, 253, 0.32);
-      --text: #f8fafc;
-      --sub: #b7c4dc;
-      --muted: #7f8da7;
-      --blue: #2563eb;
-      --blue2: #3b82f6;
-      --blue3: #60a5fa;
-      --deep: #1d4ed8;
-      --danger: #ef4444;
-      --good: #22c55e;
-      --warn: #f59e0b;
-      --shadow: rgba(0, 0, 0, 0.55);
+      --bg: #030406;
+      --panel: #090b10;
+      --panel2: #0d1118;
+      --border: #202938;
+      --border2: #2d3d55;
+      --text: #f5f7fa;
+      --sub: #b3becd;
+      --muted: #78869a;
+      --blue: #1476ff;
+      --blue2: #0d5fd5;
+      --blue-soft: rgba(20,118,255,.16);
+      --ok: #43d17a;
+      --warn: #ffc857;
+      --bad: #ff667a;
+      --shadow: 0 18px 55px rgba(0,0,0,.34);
     }
-
     * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg0);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    body {
-      display: grid;
-      grid-template-columns: 380px 410px 1fr;
-      background:
-        radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.16), transparent 28%),
-        radial-gradient(circle at 85% 25%, rgba(96, 165, 250, 0.08), transparent 34%),
-        linear-gradient(135deg, #010206 0%, #050812 46%, #07101f 100%);
-    }
-
-    .sidebar {
-      height: 100vh;
-      overflow-y: auto;
-      padding: 18px;
-      background: linear-gradient(180deg, rgba(5, 8, 18, 0.98), rgba(1, 2, 6, 0.98));
-      border-right: 1px solid rgba(96, 165, 250, 0.16);
-      box-shadow: 18px 0 50px rgba(0, 0, 0, 0.34);
-    }
-
-    .sidebar::-webkit-scrollbar { width: 8px; }
-    .sidebar::-webkit-scrollbar-thumb { background: #172036; border-radius: 999px; }
-
-    .brand {
-      margin-bottom: 16px;
-      padding: 16px;
-      border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.9)),
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 45%);
-      border: 1px solid rgba(96, 165, 250, 0.2);
-      box-shadow: 0 18px 40px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: 22px;
-      line-height: 1.22;
-      letter-spacing: -0.035em;
-    }
-
-    .description {
-      color: var(--sub);
-      font-size: 13px;
-      line-height: 1.62;
-    }
-
-    .panel {
-      margin-bottom: 14px;
-      padding: 14px;
-      border-radius: 18px;
-      background:
-        linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(5, 8, 18, 0.96));
-      border: 1px solid rgba(96, 165, 250, 0.16);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255,255,255,0.035);
-    }
-
-    .panel-title {
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      color: #dbeafe;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .pill {
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(37, 99, 235, 0.16);
-      color: #93c5fd;
-      border: 1px solid rgba(96, 165, 250, 0.22);
-      font-size: 10px;
-      letter-spacing: 0.02em;
-    }
-
-    button, select {
-      width: 100%;
-      margin: 5px 0;
-      padding: 11px 12px;
-      border-radius: 13px;
-      color: #ffffff;
-      font-weight: 850;
-      letter-spacing: -0.015em;
-      outline: none;
-      font-size: 13px;
-    }
-
-    button {
-      border: 1px solid rgba(147, 197, 253, 0.38);
-      background: linear-gradient(180deg, var(--blue2), var(--blue) 58%, var(--deep));
-      cursor: pointer;
-      box-shadow: 0 12px 26px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255,255,255,0.18);
-      transition: transform 0.08s ease, filter 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-
-    button:hover {
-      filter: brightness(1.08);
-      border-color: rgba(191, 219, 254, 0.74);
-      box-shadow: 0 15px 34px rgba(37, 99, 235, 0.36), inset 0 1px 0 rgba(255,255,255,0.22);
-    }
-
-    button:active { transform: translateY(1px) scale(0.995); }
-    button.secondary { background: linear-gradient(180deg, #1e40af, #1d4ed8 60%, #1e3a8a); }
-    button.ghost {
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 13, 25, 0.98));
-      border-color: rgba(96, 165, 250, 0.24);
-      color: #bfdbfe;
-      box-shadow: none;
-    }
-    button.danger {
-      background: linear-gradient(180deg, #334155, #111827);
-      border-color: rgba(239, 68, 68, 0.36);
-      color: #fecaca;
-      box-shadow: none;
-    }
-
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-    label {
-      display: block;
-      margin: 11px 0 6px;
-      color: var(--sub);
-      font-size: 12px;
-      font-weight: 720;
-    }
-
-    input[type="range"] { width: 100%; accent-color: var(--blue3); }
-
-    select {
-      background: #050b18;
-      border: 1px solid rgba(96, 165, 250, 0.25);
-      color: var(--text);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-
-    .value-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      color: var(--muted);
-      font-size: 11.5px;
-    }
-
-    .value-row strong { color: #bfdbfe; font-weight: 850; }
-
-    .formula {
-      padding: 12px;
-      border-radius: 14px;
-      background: rgba(2, 6, 23, 0.72);
-      border: 1px solid rgba(96, 165, 250, 0.16);
-      color: #bfdbfe;
-      font-family: "Cambria Math", "Times New Roman", serif;
-      font-size: 14px;
-      line-height: 1.75;
-      overflow-x: auto;
-    }
-    .formula .eq { display: block; white-space: nowrap; }
-
-    .stats {
-      white-space: pre-line;
-      color: #d6e1f5;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11.5px;
-      line-height: 1.62;
-    }
-
-    .small { color: var(--muted); font-size: 12px; line-height: 1.5; }
-
-    .canvas-panel {
-      position: relative;
-      height: 100vh;
-      overflow: hidden;
-      border-right: 1px solid rgba(96, 165, 250, 0.16);
-      background:
-        radial-gradient(circle at 50% 35%, rgba(37, 99, 235, 0.11), transparent 38%),
-        radial-gradient(circle at 50% 45%, #121a2d 0%, #020617 72%);
-    }
-
-    canvas { display: block; width: 100%; height: 100%; }
-    #drawCanvas { cursor: crosshair; }
-    #viewCanvas { cursor: grab; }
-    #viewCanvas:active { cursor: grabbing; }
-
-    .badge {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(2, 6, 23, 0.78);
-      border: 1px solid rgba(96, 165, 250, 0.28);
-      color: #dbeafe;
-      font-size: 12px;
-      font-weight: 850;
-      backdrop-filter: blur(12px);
-      pointer-events: none;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
-    }
-
-    .hint {
-      position: absolute;
-      left: 14px;
-      bottom: 14px;
-      max-width: calc(100% - 28px);
-      padding: 11px 13px;
-      border-radius: 14px;
-      background: rgba(2, 6, 23, 0.84);
-      border: 1px solid rgba(96, 165, 250, 0.22);
-      color: #e2e8f0;
-      font-size: 12px;
-      line-height: 1.48;
-      backdrop-filter: blur(14px);
-      pointer-events: none;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.32);
-    }
-
-    .hud {
-      position: absolute;
-      left: 14px;
-      top: 14px;
-      max-width: min(420px, calc(100% - 28px));
-      padding: 11px 13px;
-      border-radius: 14px;
-      background: rgba(2, 6, 23, 0.75);
-      border: 1px solid rgba(96, 165, 250, 0.2);
-      color: #bfdbfe;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11.2px;
-      line-height: 1.55;
-      white-space: pre-line;
-      backdrop-filter: blur(14px);
-      pointer-events: none;
-    }
-
-    .status-good { color: #86efac; }
-    .status-warn { color: #fde68a; }
-    .status-bad { color: #fecaca; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: Inter, Pretendard, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: grid; grid-template-columns: 360px minmax(300px, 36vw) 1fr; }
+    .sidebar { height: 100vh; overflow-y: auto; padding: 18px; background: linear-gradient(180deg,#05070a 0%,#020304 100%); border-right: 1px solid var(--border); }
+    .brand { display:flex; gap:12px; align-items:center; margin-bottom:16px; }
+    .logo { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(145deg,var(--blue),#073b8c); box-shadow:0 10px 30px rgba(20,118,255,.25); font-weight:900; }
+    h1 { margin:0; font-size:19px; letter-spacing:-.02em; }
+    .subtitle { color:var(--muted); font-size:11px; margin-top:3px; }
+    .panel { background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--border); border-radius:15px; padding:14px; margin-bottom:12px; box-shadow:var(--shadow); }
+    .panel-title { font-size:12px; font-weight:800; color:#dbe7f7; letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    button, select, input { font:inherit; }
+    button { width:100%; min-height:40px; border:1px solid rgba(89,157,255,.35); border-radius:10px; background:linear-gradient(180deg,var(--blue),var(--blue2)); color:white; font-size:12px; font-weight:800; cursor:pointer; transition:.15s ease; box-shadow:0 7px 18px rgba(13,95,213,.18); }
+    button:hover { filter:brightness(1.1); transform:translateY(-1px); }
+    button:active { transform:translateY(0); }
+    button.secondary { background:#111722; border-color:#2c3c53; box-shadow:none; color:#d8e5f6; }
+    button.danger { background:#171015; border-color:#51313a; color:#ff9aaa; box-shadow:none; }
+    button:disabled { opacity:.42; cursor:not-allowed; transform:none; }
+    label { display:block; color:var(--sub); font-size:11px; margin:11px 0 6px; }
+    .value-line { display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:10px; margin-top:3px; }
+    input[type="range"] { width:100%; accent-color:var(--blue); }
+    select { width:100%; background:#080b10; color:var(--text); border:1px solid var(--border2); border-radius:9px; padding:9px 10px; outline:none; }
+    .formula { background:#05070a; border:1px solid var(--border); border-radius:11px; padding:11px; color:#a9ceff; font-family:"Cambria Math","Times New Roman",serif; font-size:13px; line-height:1.75; overflow:auto; }
+    .formula span { display:block; white-space:nowrap; }
+    .stats { white-space:pre-line; color:#cbd5e1; font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    .status-badge { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border2); border-radius:999px; padding:5px 8px; font-size:10px; color:var(--sub); background:#080b10; margin-bottom:8px; }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--muted); }
+    .dot.ok { background:var(--ok); box-shadow:0 0 10px rgba(67,209,122,.5); }
+    .dot.warn { background:var(--warn); }
+    .canvas-panel { position:relative; height:100vh; overflow:hidden; border-right:1px solid var(--border); background:radial-gradient(circle at 50% 36%,#111927 0%,#05070a 58%,#020304 100%); }
+    canvas { width:100%; height:100%; display:block; touch-action:none; }
+    #drawCanvas { cursor:crosshair; }
+    #viewCanvas { cursor:grab; }
+    #viewCanvas:active { cursor:grabbing; }
+    .hud { position:absolute; top:14px; left:14px; right:14px; display:flex; justify-content:space-between; gap:10px; pointer-events:none; }
+    .hud-card { background:rgba(5,7,10,.82); backdrop-filter:blur(10px); border:1px solid rgba(95,123,158,.35); border-radius:11px; padding:8px 10px; color:#dce9fb; font-size:10px; box-shadow:0 10px 28px rgba(0,0,0,.25); }
+    .hint { position:absolute; left:14px; right:14px; bottom:14px; background:rgba(5,7,10,.82); backdrop-filter:blur(10px); border:1px solid rgba(95,123,158,.35); border-radius:11px; padding:10px 12px; color:#cbd5e1; font-size:11px; line-height:1.45; pointer-events:none; }
+    .legend { position:absolute; right:14px; bottom:68px; width:150px; pointer-events:none; }
+    .legend-bar { height:8px; border-radius:999px; background:linear-gradient(90deg,#173b8f,#4a8fff,#d7e8ff,#ffb05c,#ff4d4d); border:1px solid rgba(255,255,255,.18); }
+    .legend-text { display:flex; justify-content:space-between; color:#8291a5; font-size:9px; margin-top:4px; }
+    .small { color:var(--muted); font-size:10px; line-height:1.5; }
+    .warning { color:var(--warn); }
+    @media (max-width: 1100px) { body { grid-template-columns:330px 1fr; } .canvas-panel:nth-of-type(2) { display:none; } }
   </style>
 </head>
 <body>
   <aside class="sidebar">
-    <div class="brand">
-      <h1>FEM Wave Laboratory</h1>
-      <div class="description">
-        마우스로 그린 평면 영역을 삼각형 요소로 이산화하고, 디리클레/자유 노이만 경계에서 파동방정식과 선택 고유모드 진동을 시각화합니다.
-      </div>
-    </div>
+    <div class="brand"><div class="logo">F</div><div><h1>FEM Wave Laboratory</h1><div class="subtitle">Verified numerical model · single-file edition</div></div></div>
 
     <section class="panel">
-      <div class="panel-title">Workflow <span class="pill">DRAW → MESH → SOLVE</span></div>
-      <button id="drawModeBtn">1. 그리기 모드</button>
-      <button id="sampleBtn" class="ghost">예시 원형 영역 생성</button>
-      <button id="buildBtn">2. 영역 생성 / FEM 조립</button>
-      <button id="startBtn" class="secondary">3. 일반 파동 시작 / 정지</button>
-      <button id="pulseBtn" class="ghost">중앙 충격 추가</button>
-      <button id="computeEigenBtn">4. 선택 고유모드 계산</button>
-      <button id="eigenStartBtn" class="secondary">5. 고유모드 진동 시작 / 정지</button>
-      <button id="clearBtn" class="danger">초기화</button>
-      <p class="small">가운데 캔버스에 폐곡선을 그린 뒤 FEM 조립을 누르세요. 오른쪽은 3D 투영 화면입니다.</p>
+      <div class="panel-title">Domain & simulation</div>
+      <div class="row"><button id="drawModeBtn" class="secondary">새 영역 그리기</button><button id="circleBtn" class="secondary">원형 예시</button></div>
+      <button id="buildBtn">Mesh 생성 / FEM 조립</button>
+      <div class="row"><button id="waveBtn">일반 파동 시작</button><button id="pulseBtn" class="secondary">중앙 충격</button></div>
+      <button id="resetBtn" class="danger">전체 초기화</button>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Boundary & Mesh</div>
-      <label for="boundaryCondition">경계조건</label>
-      <select id="boundaryCondition">
-        <option value="dirichlet">디리클레 고정 경계: u = 0</option>
-        <option value="neumann">자유 노이만 경계: ∂u/∂n = 0</option>
-      </select>
-
-      <label for="gridStep">격자 간격 - 작을수록 노드 증가</label>
-      <input id="gridStep" type="range" min="4" max="36" step="1" value="12" />
-      <div class="value-row"><span>고해상도</span><strong id="gridStepValue">12 px</strong></div>
-
-      <label for="nodeBudget">일반 시뮬레이션 최대 노드 수</label>
-      <input id="nodeBudget" type="range" min="800" max="18000" step="200" value="9000" />
-      <div class="value-row"><span>안전 제한</span><strong id="nodeBudgetValue">9000 nodes</strong></div>
+      <div class="panel-title">Boundary & mesh</div>
+      <label for="boundaryType">경계조건</label>
+      <select id="boundaryType"><option value="dirichlet">고정 디리클레: u = 0</option><option value="neumann">자유 노이만: ∂u/∂n = 0</option></select>
+      <label for="gridStep">격자 간격</label><input id="gridStep" type="range" min="5" max="32" step="1" value="14"><div class="value-line"><span>작을수록 노드 증가</span><span id="gridStepValue">14 px</span></div>
+      <label for="maxNodes">최대 노드 수</label><input id="maxNodes" type="range" min="1000" max="16000" step="500" value="9000"><div class="value-line"><span>안전 제한</span><span id="maxNodesValue">9000</span></div>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Time Solver</div>
-      <label for="waveSpeed">파동 속도 c</label>
-      <input id="waveSpeed" type="range" min="5" max="220" step="1" value="85" />
-      <div class="value-row"><span>px/s</span><strong id="waveSpeedValue">85</strong></div>
-
-      <label for="damping">저항 / 감쇠 γ</label>
-      <input id="damping" type="range" min="0" max="0.20" step="0.001" value="0.020" />
-      <div class="value-row"><span id="dampingGuide">권장 범위</span><strong id="dampingValue">0.020</strong></div>
-
-      <label for="cflScale">시간 안정도 CFL</label>
-      <input id="cflScale" type="range" min="0.10" max="0.72" step="0.01" value="0.42" />
-      <div class="value-row"><span>낮을수록 안정</span><strong id="cflScaleValue">0.42</strong></div>
+      <div class="panel-title">Physical model</div>
+      <label for="waveSpeed">파동 속도 c</label><input id="waveSpeed" type="range" min="0.2" max="5" step="0.1" value="1.2"><div class="value-line"><span>m/s</span><span id="waveSpeedValue">1.2 m/s</span></div>
+      <label for="scaleMm">길이 스케일</label><input id="scaleMm" type="range" min="1" max="20" step="1" value="5"><div class="value-line"><span>1 pixel 당</span><span id="scaleMmValue">5 mm/px</span></div>
+      <label for="damping">저항 계수 γ</label><input id="damping" type="range" min="0" max="5" step="0.05" value="0.25"><div class="value-line"><span>식: uₜₜ + 2γuₜ − c²Δu = 0</span><span id="dampingValue">0.25 s⁻¹</span></div>
+      <label for="timeScale">시간 배율</label><input id="timeScale" type="range" min="0.2" max="2" step="0.05" value="1"><div class="value-line"><span>재생 속도</span><span id="timeScaleValue">1.00×</span></div>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Eigenmode Solver</div>
-      <label for="eigenModeIndex">고를 고유모드 번호</label>
-      <input id="eigenModeIndex" type="range" min="1" max="80" step="1" value="2" />
-      <div class="value-row"><span>낮은 모드</span><strong id="eigenModeIndexValue">2 번</strong></div>
-
-      <label for="eigenMaxDof">고유값 계산 최대 자유도</label>
-      <input id="eigenMaxDof" type="range" min="80" max="520" step="10" value="280" />
-      <div class="value-row"><span>클수록 무거움</span><strong id="eigenMaxDofValue">280 dof</strong></div>
-
-      <label for="eigenAmplitude">고유모드 진폭</label>
-      <input id="eigenAmplitude" type="range" min="0.2" max="2.5" step="0.05" value="1.0" />
-      <div class="value-row"><span>shape scale</span><strong id="eigenAmplitudeValue">1.00</strong></div>
+      <div class="panel-title">Eigenmode</div>
+      <label for="modeIndex">선택 고유모드 번호</label><input id="modeIndex" type="range" min="1" max="40" step="1" value="2"><div class="value-line"><span>노이만 1번은 영모드 가능</span><span id="modeIndexValue">2</span></div>
+      <label for="eigenMaxDof">고유값 계산 최대 자유도</label><input id="eigenMaxDof" type="range" min="60" max="260" step="20" value="180"><div class="value-line"><span>클수록 느림</span><span id="eigenMaxDofValue">180</span></div>
+      <button id="eigenSolveBtn">선택 고유모드 계산</button>
+      <button id="eigenPlayBtn" class="secondary" disabled>고유모드 진동 시작</button>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Display</div>
-      <label for="heightScale">3D 높이 배율</label>
-      <input id="heightScale" type="range" min="30" max="650" step="10" value="250" />
-      <div class="value-row"><span>시각 높이</span><strong id="heightScaleValue">250</strong></div>
-
-      <label for="viewMode">표면 높이 표시</label>
-      <select id="viewMode">
-        <option value="normalized">자동 정규화: 모양을 항상 크게 표시</option>
-        <option value="physical">실제 변위 비례: u 그대로 표시</option>
-      </select>
-
-      <label for="wireOpacity">격자선 진하기</label>
-      <input id="wireOpacity" type="range" min="0" max="0.9" step="0.05" value="0.35" />
-      <div class="value-row"><span>mesh overlay</span><strong id="wireOpacityValue">0.35</strong></div>
+      <div class="panel-title">View</div>
+      <label for="heightScale">3D 높이 배율</label><input id="heightScale" type="range" min="20" max="360" step="10" value="150"><div class="value-line"><span>시각적 높이</span><span id="heightScaleValue">150</span></div>
+      <label for="normalization">높이 표시</label><select id="normalization"><option value="auto">프레임별 자동 정규화</option><option value="fixed">초기 진폭 기준</option></select>
+      <label for="meshOpacity">Mesh 선명도</label><input id="meshOpacity" type="range" min="0" max="1" step="0.05" value="0.35"><div class="value-line"><span>요소 경계</span><span id="meshOpacityValue">0.35</span></div>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Core Equations</div>
+      <div class="panel-title">Verified equations</div>
       <div class="formula">
-        <span class="eq">uₜₜ = c² Δu</span>
-        <span class="eq">M ü + c²K u = 0</span>
-        <span class="eq">Kφₙ = λₙMφₙ</span>
-        <span class="eq">ωₙ = c√λₙ,  fₙ = ωₙ / 2π</span>
-        <span class="eq">uₙ(t) = A cos(ωₙt)e⁻ᵞᵗ φₙ</span>
+        <span>uₜₜ + 2γuₜ − c²Δu = 0</span>
+        <span>Mü + 2γM u̇ + c²Ku = 0</span>
+        <span>Kφₙ = λₙMφₙ</span>
+        <span>ω₀,ₙ = c√λₙ, &nbsp; fₙ = ω₀,ₙ/(2π)</span>
       </div>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Status</div>
+      <div class="panel-title">Diagnostics</div>
+      <div class="status-badge"><span id="statusDot" class="dot"></span><span id="statusLabel">대기</span></div>
       <div id="stats" class="stats">아직 영역이 생성되지 않았습니다.</div>
     </section>
   </aside>
 
   <section class="canvas-panel">
     <canvas id="drawCanvas"></canvas>
-    <div class="badge">2D Domain Editor</div>
-    <div id="drawHint" class="hint">여기에 마우스로 폐곡선을 그리세요. 마우스를 떼면 자동으로 닫힙니다.</div>
+    <div class="hud"><div class="hud-card">2D DOMAIN / TRIANGULAR MESH</div><div id="meshHud" class="hud-card">Nodes 0 · Elements 0</div></div>
+    <div id="drawHint" class="hint">마우스로 폐곡선을 그리거나 원형 예시를 선택하세요.</div>
   </section>
 
   <section class="canvas-panel">
     <canvas id="viewCanvas"></canvas>
-    <div class="badge">3D FEM Surface</div>
-    <div id="viewHud" class="hud">mesh: none
-solver: waiting</div>
-    <div class="hint">드래그: 회전 / 휠: 확대·축소. 기본 시점은 위에서 내려다보는 방향입니다.</div>
+    <div class="hud"><div class="hud-card">3D DISPLACEMENT FIELD</div><div id="modeHud" class="hud-card">Idle</div></div>
+    <div class="legend"><div class="legend-bar"></div><div class="legend-text"><span>−u</span><span>0</span><span>+u</span></div></div>
+    <div class="hint">드래그: 회전 · 휠: 확대/축소 · 기본 시점은 위에서 아래 방향</div>
   </section>
 
-  <script>
-    "use strict";
-
-    var drawCanvas = document.getElementById("drawCanvas");
-    var viewCanvas = document.getElementById("viewCanvas");
-    var drawCtx = drawCanvas.getContext("2d");
-    var viewCtx = viewCanvas.getContext("2d");
-
-    var drawModeBtn = document.getElementById("drawModeBtn");
-    var sampleBtn = document.getElementById("sampleBtn");
-    var buildBtn = document.getElementById("buildBtn");
-    var startBtn = document.getElementById("startBtn");
-    var pulseBtn = document.getElementById("pulseBtn");
-    var computeEigenBtn = document.getElementById("computeEigenBtn");
-    var eigenStartBtn = document.getElementById("eigenStartBtn");
-    var clearBtn = document.getElementById("clearBtn");
-    var statsEl = document.getElementById("stats");
-    var drawHint = document.getElementById("drawHint");
-    var viewHud = document.getElementById("viewHud");
-
-    var boundaryConditionInput = document.getElementById("boundaryCondition");
-    var gridStepInput = document.getElementById("gridStep");
-    var nodeBudgetInput = document.getElementById("nodeBudget");
-    var waveSpeedInput = document.getElementById("waveSpeed");
-    var dampingInput = document.getElementById("damping");
-    var cflScaleInput = document.getElementById("cflScale");
-    var eigenModeIndexInput = document.getElementById("eigenModeIndex");
-    var eigenMaxDofInput = document.getElementById("eigenMaxDof");
-    var eigenAmplitudeInput = document.getElementById("eigenAmplitude");
-    var heightScaleInput = document.getElementById("heightScale");
-    var viewModeInput = document.getElementById("viewMode");
-    var wireOpacityInput = document.getElementById("wireOpacity");
-
-    var gridStepValue = document.getElementById("gridStepValue");
-    var nodeBudgetValue = document.getElementById("nodeBudgetValue");
-    var waveSpeedValue = document.getElementById("waveSpeedValue");
-    var dampingValue = document.getElementById("dampingValue");
-    var dampingGuide = document.getElementById("dampingGuide");
-    var cflScaleValue = document.getElementById("cflScaleValue");
-    var eigenModeIndexValue = document.getElementById("eigenModeIndexValue");
-    var eigenMaxDofValue = document.getElementById("eigenMaxDofValue");
-    var eigenAmplitudeValue = document.getElementById("eigenAmplitudeValue");
-    var heightScaleValue = document.getElementById("heightScaleValue");
-    var wireOpacityValue = document.getElementById("wireOpacityValue");
-
-    var drawW = 1;
-    var drawH = 1;
-    var viewW = 1;
-    var viewH = 1;
-
-    var mode = "draw";
-    var drawing = false;
-    var boundary = [];
-
-    var nodes = [];
-    var triangles = [];
-    var edges = [];
-    var mass = [];
-    var stiffnessRows = [];
-    var u = [];
-    var uPrev = [];
-    var initialU = [];
-
-    var running = false;
-    var eigenRunning = false;
-    var simTime = 0;
-    var eigenTime = 0;
-    var lastTime = performance.now();
-    var accumulator = 0;
-
-    var eigenReady = false;
-    var eigenLambda = 0;
-    var eigenOmega = 0;
-    var eigenFrequency = 0;
-    var eigenPeriod = Infinity;
-    var eigenVector = [];
-    var eigenModeActualIndex = 0;
-    var eigenResidual = NaN;
-    var eigenDof = 0;
-    var eigenMessage = "고유모드가 아직 계산되지 않았습니다.";
-
-    var lastMeshMessage = "영역이 아직 생성되지 않았습니다.";
-
-    var rotX = 0.95;
-    var rotZ = 0.72;
-    var zoom = 1.0;
-    var draggingView = false;
-    var lastViewPointer = null;
-
-    function isNeumann() { return boundaryConditionInput.value === "neumann"; }
-    function activeBoundaryName() { return isNeumann() ? "자유 노이만" : "디리클레 고정"; }
-
-    function formatNumber(value, digits) {
-      if (!Number.isFinite(value)) return "∞";
-      var abs = Math.abs(value);
-      if (abs !== 0 && (abs < 0.0001 || abs >= 100000)) return value.toExponential(digits);
-      return value.toFixed(digits);
-    }
-
-    function dampingLabel(gamma) {
-      if (gamma <= 0.0005) return "감쇠 없음";
-      if (gamma < 0.008) return "매우 약함";
-      if (gamma < 0.045) return "권장 범위";
-      if (gamma < 0.10) return "강함";
-      return "매우 강함";
-    }
-
-    function invalidateEigen(reason) {
-      eigenReady = false;
-      eigenRunning = false;
-      eigenLambda = 0;
-      eigenOmega = 0;
-      eigenFrequency = 0;
-      eigenPeriod = Infinity;
-      eigenVector = [];
-      eigenModeActualIndex = 0;
-      eigenResidual = NaN;
-      eigenDof = 0;
-      eigenMessage = reason || "고유모드를 다시 계산해야 합니다.";
-    }
-
-    function updateEigenDerivedValues() {
-      var c = Number(waveSpeedInput.value);
-      eigenOmega = c * Math.sqrt(Math.max(eigenLambda, 0));
-      eigenFrequency = eigenOmega / (2 * Math.PI);
-      eigenPeriod = eigenFrequency > 1e-12 ? 1 / eigenFrequency : Infinity;
-    }
-
-    function updateSliderLabels() {
-      gridStepValue.textContent = gridStepInput.value + " px";
-      nodeBudgetValue.textContent = nodeBudgetInput.value + " nodes";
-      waveSpeedValue.textContent = waveSpeedInput.value;
-      var gamma = Number(dampingInput.value);
-      dampingValue.textContent = gamma.toFixed(3);
-      dampingGuide.textContent = dampingLabel(gamma);
-      cflScaleValue.textContent = Number(cflScaleInput.value).toFixed(2);
-      eigenModeIndexValue.textContent = eigenModeIndexInput.value + " 번";
-      eigenMaxDofValue.textContent = eigenMaxDofInput.value + " dof";
-      eigenAmplitudeValue.textContent = Number(eigenAmplitudeInput.value).toFixed(2);
-      heightScaleValue.textContent = heightScaleInput.value;
-      wireOpacityValue.textContent = Number(wireOpacityInput.value).toFixed(2);
-    }
-
-    function toast(message) { drawHint.textContent = String(message); }
-
-    function fitCanvas(canvas, ctx) {
-      var dpr = window.devicePixelRatio || 1;
-      var rect = canvas.getBoundingClientRect();
-      var w = Math.max(1, Math.floor(rect.width));
-      var h = Math.max(1, Math.floor(rect.height));
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      return { w: w, h: h };
-    }
-
-    function resize() {
-      var a = fitCanvas(drawCanvas, drawCtx);
-      var b = fitCanvas(viewCanvas, viewCtx);
-      drawW = a.w; drawH = a.h;
-      viewW = b.w; viewH = b.h;
-      renderDrawCanvas();
-      render3DCanvas();
-    }
-
-    function pointerOnCanvas(e, canvas) {
-      var rect = canvas.getBoundingClientRect();
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    }
-
-    function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-
-    function pointInPolygon(p, poly) {
-      var inside = false;
-      for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        var xi = poly[i].x, yi = poly[i].y;
-        var xj = poly[j].x, yj = poly[j].y;
-        var denom = yj - yi;
-        if (Math.abs(denom) < 1e-12) denom = 1e-12;
-        var intersect = ((yi > p.y) !== (yj > p.y)) && (p.x < ((xj - xi) * (p.y - yi)) / denom + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    }
-
-    function getBounds(poly) {
-      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (var i = 0; i < poly.length; i++) {
-        minX = Math.min(minX, poly[i].x);
-        minY = Math.min(minY, poly[i].y);
-        maxX = Math.max(maxX, poly[i].x);
-        maxY = Math.max(maxY, poly[i].y);
-      }
-      return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
-    }
-
-    function nodeKey(i, j) { return i + "," + j; }
-
-    function triangleArea(p1, p2, p3) {
-      return Math.abs((p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y)) / 2;
-    }
-
-    function addEdge(edgeSet, a, b) {
-      var lo = Math.min(a, b);
-      var hi = Math.max(a, b);
-      edgeSet.add(lo + "-" + hi);
-    }
-
-    function makeSampleCircle() {
-      running = false;
-      eigenRunning = false;
-      mode = "draw";
-      boundary = [];
-      var cx = drawW * 0.5;
-      var cy = drawH * 0.5;
-      var r = Math.min(drawW, drawH) * 0.33;
-      var count = 180;
-      for (var i = 0; i <= count; i++) {
-        var angle = 2 * Math.PI * i / count;
-        boundary.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
-      }
-      nodes = []; triangles = []; edges = []; mass = []; stiffnessRows = []; u = []; uPrev = []; initialU = [];
-      invalidateEigen("예시 영역 생성. FEM 조립을 다시 실행하세요.");
-      toast("예시 원형 영역이 생성되었습니다. '영역 생성 / FEM 조립'을 누르세요.");
-      renderDrawCanvas(); render3DCanvas(); updateStats();
-    }
-
-    function buildDomain() {
-      if (boundary.length < 10) {
-        toast("먼저 왼쪽 캔버스에서 닫힌 영역을 그려야 합니다.");
-        return;
-      }
-
-      running = false;
-      eigenRunning = false;
-      mode = "sim";
-      simTime = 0;
-      accumulator = 0;
-      invalidateEigen("새 mesh가 생성되어 고유모드를 다시 계산해야 합니다.");
-
-      var h = Number(gridStepInput.value);
-      var budget = Number(nodeBudgetInput.value);
-      var bounds = getBounds(boundary);
-      var minX = Math.max(0, Math.floor(bounds.minX - h));
-      var minY = Math.max(0, Math.floor(bounds.minY - h));
-      var maxX = Math.min(drawW, Math.ceil(bounds.maxX + h));
-      var maxY = Math.min(drawH, Math.ceil(bounds.maxY + h));
-
-      nodes = []; triangles = []; edges = []; mass = []; stiffnessRows = []; u = []; uPrev = []; initialU = [];
-
-      var nodeMap = new Map();
-      var cols = Math.floor((maxX - minX) / h) + 1;
-      var rows = Math.floor((maxY - minY) / h) + 1;
-
-      for (var j = 0; j <= rows; j++) {
-        for (var i = 0; i <= cols; i++) {
-          var p = { x: minX + i * h, y: minY + j * h };
-          if (pointInPolygon(p, boundary)) {
-            if (nodes.length >= budget) {
-              lastMeshMessage = "노드 제한 " + budget + "개에 도달했습니다. 격자 간격을 키우거나 제한을 올리세요.";
-              break;
-            }
-            var id = nodes.length;
-            nodes.push({ x: p.x, y: p.y, i: i, j: j, boundary: false });
-            nodeMap.set(nodeKey(i, j), id);
-          }
-        }
-        if (nodes.length >= budget) break;
-      }
-
-      function idAt(i, j) { return nodeMap.get(nodeKey(i, j)); }
-
-      for (var n = 0; n < nodes.length; n++) {
-        var nd = nodes[n];
-        var neighbors = [idAt(nd.i + 1, nd.j), idAt(nd.i - 1, nd.j), idAt(nd.i, nd.j + 1), idAt(nd.i, nd.j - 1)];
-        nd.boundary = neighbors.some(function(v) { return v === undefined; });
-      }
-
-      for (var jj = 0; jj < rows; jj++) {
-        for (var ii = 0; ii < cols; ii++) {
-          var a = idAt(ii, jj);
-          var b = idAt(ii + 1, jj);
-          var c = idAt(ii, jj + 1);
-          var d = idAt(ii + 1, jj + 1);
-          if (a !== undefined && b !== undefined && c !== undefined) triangles.push([a, b, c]);
-          if (b !== undefined && d !== undefined && c !== undefined) triangles.push([b, d, c]);
-        }
-      }
-
-      if (nodes.length < 8 || triangles.length < 4) {
-        lastMeshMessage = "영역이 너무 작거나 격자가 너무 큽니다.";
-        toast(lastMeshMessage);
-        mode = "draw";
-        updateStats();
-        return;
-      }
-
-      assembleFEM();
-      initializeWave();
-      lastMeshMessage = "FEM 조립 완료. " + activeBoundaryName() + " 경계조건 적용.";
-      toast(lastMeshMessage);
-      renderDrawCanvas(); render3DCanvas(); updateStats();
-    }
-
-    function assembleFEM() {
-      var n = nodes.length;
-      mass = new Array(n).fill(0);
-      var rowMaps = [];
-      for (var i = 0; i < n; i++) rowMaps.push(new Map());
-
-      for (var t = 0; t < triangles.length; t++) {
-        var ids = triangles[t];
-        var p = [nodes[ids[0]], nodes[ids[1]], nodes[ids[2]]];
-        var area = triangleArea(p[0], p[1], p[2]);
-        if (area < 1e-10) continue;
-
-        var bb = [p[1].y - p[2].y, p[2].y - p[0].y, p[0].y - p[1].y];
-        var cc = [p[2].x - p[1].x, p[0].x - p[2].x, p[1].x - p[0].x];
-
-        for (var li = 0; li < 3; li++) {
-          mass[ids[li]] += area / 3;
-          for (var lj = 0; lj < 3; lj++) {
-            var kij = (bb[li] * bb[lj] + cc[li] * cc[lj]) / (4 * area);
-            var row = rowMaps[ids[li]];
-            row.set(ids[lj], (row.get(ids[lj]) || 0) + kij);
-          }
-        }
-      }
-
-      stiffnessRows = rowMaps.map(function(map) {
-        return Array.from(map.entries()).map(function(pair) { return { j: pair[0], value: pair[1] }; });
-      });
-
-      var edgeSet = new Set();
-      for (var k = 0; k < triangles.length; k++) {
-        addEdge(edgeSet, triangles[k][0], triangles[k][1]);
-        addEdge(edgeSet, triangles[k][1], triangles[k][2]);
-        addEdge(edgeSet, triangles[k][2], triangles[k][0]);
-      }
-      edges = Array.from(edgeSet).map(function(s) { return s.split("-").map(Number); });
-    }
-
-    function initializeWave() {
-      var n = nodes.length;
-      u = new Array(n).fill(0);
-      uPrev = new Array(n).fill(0);
-      initialU = new Array(n).fill(0);
-      var cx = nodes.reduce(function(sum, p) { return sum + p.x; }, 0) / n;
-      var cy = nodes.reduce(function(sum, p) { return sum + p.y; }, 0) / n;
-      var bounds = getBounds(boundary);
-      var sigma = Math.max(14, Math.min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 0.16);
-      for (var i = 0; i < n; i++) {
-        var dx = nodes[i].x - cx;
-        var dy = nodes[i].y - cy;
-        var val = Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma));
-        if (!isNeumann() && nodes[i].boundary) val = 0;
-        u[i] = val;
-        uPrev[i] = val;
-        initialU[i] = val;
-      }
-      simTime = 0;
-    }
-
-    function addPulse() {
-      if (!nodes.length) { toast("먼저 영역을 생성하세요."); return; }
-      running = false;
-      eigenRunning = false;
-      var cx = nodes.reduce(function(sum, p) { return sum + p.x; }, 0) / nodes.length;
-      var cy = nodes.reduce(function(sum, p) { return sum + p.y; }, 0) / nodes.length;
-      var sigma = Number(gridStepInput.value) * 3.0;
-      for (var i = 0; i < nodes.length; i++) {
-        var dx = nodes[i].x - cx;
-        var dy = nodes[i].y - cy;
-        var add = 0.85 * Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma));
-        u[i] += add;
-        initialU[i] = u[i];
-        if (!isNeumann() && nodes[i].boundary) { u[i] = 0; initialU[i] = 0; }
-      }
-      uPrev = u.slice();
-      invalidateEigen("초기 변위가 바뀌었습니다. 고유모드를 다시 계산할 수 있습니다.");
-      render3DCanvas(); updateStats();
-      toast("중앙 충격을 추가했습니다.");
-    }
-
-    function stepSimulation(dt) {
-      var c = Number(waveSpeedInput.value);
-      var gamma = Number(dampingInput.value);
-      var c2dt2 = c * c * dt * dt;
-      var damp = Math.exp(-gamma * dt);
-      var next = new Array(u.length).fill(0);
-
-      for (var i = 0; i < u.length; i++) {
-        if (!isNeumann() && nodes[i].boundary) { next[i] = 0; continue; }
-        if (mass[i] <= 1e-12) { next[i] = 0; continue; }
-        var ku = 0;
-        for (var r = 0; r < stiffnessRows[i].length; r++) {
-          var entry = stiffnessRows[i][r];
-          ku += entry.value * u[entry.j];
-        }
-        var velocityTerm = damp * (u[i] - uPrev[i]);
-        next[i] = u[i] + velocityTerm - c2dt2 * ku / mass[i];
-        if (!Number.isFinite(next[i])) next[i] = 0;
-      }
-
-      if (!isNeumann()) {
-        for (var b = 0; b < nodes.length; b++) if (nodes[b].boundary) next[b] = 0;
-      }
-      uPrev = u;
-      u = next;
-      simTime += dt;
-    }
-
-    function makeDofNodes() {
-      var arr = [];
-      for (var i = 0; i < nodes.length; i++) {
-        if (mass[i] <= 1e-12) continue;
-        if (!isNeumann() && nodes[i].boundary) continue;
-        arr.push(i);
-      }
-      return arr;
-    }
-
-    function makeZeroMatrix(rows, cols) {
-      var out = new Array(rows);
-      for (var i = 0; i < rows; i++) out[i] = new Array(cols).fill(0);
-      return out;
-    }
-
-    function jacobiSymmetricEigen(input) {
-      var n = input.length;
-      var A = makeZeroMatrix(n, n);
-      var V = makeZeroMatrix(n, n);
-      for (var i = 0; i < n; i++) {
-        V[i][i] = 1;
-        for (var j = 0; j < n; j++) A[i][j] = input[i][j];
-      }
-      var maxIter = Math.max(100, n * n * 18);
-      for (var iter = 0; iter < maxIter; iter++) {
-        var p = 0, q = 1, maxOff = 0;
-        for (var r = 0; r < n; r++) {
-          for (var c = r + 1; c < n; c++) {
-            var off = Math.abs(A[r][c]);
-            if (off > maxOff) { maxOff = off; p = r; q = c; }
-          }
-        }
-        if (maxOff < 1e-9) break;
-        var app = A[p][p], aqq = A[q][q], apq = A[p][q];
-        if (Math.abs(apq) < 1e-14) continue;
-        var theta = 0.5 * Math.atan2(2 * apq, aqq - app);
-        var cs = Math.cos(theta), sn = Math.sin(theta);
-        for (var k = 0; k < n; k++) {
-          var akp = A[k][p], akq = A[k][q];
-          A[k][p] = cs * akp - sn * akq;
-          A[k][q] = sn * akp + cs * akq;
-        }
-        for (var k2 = 0; k2 < n; k2++) {
-          var apk = A[p][k2], aqk = A[q][k2];
-          A[p][k2] = cs * apk - sn * aqk;
-          A[q][k2] = sn * apk + cs * aqk;
-        }
-        A[p][q] = 0; A[q][p] = 0;
-        for (var vk = 0; vk < n; vk++) {
-          var vip = V[vk][p], viq = V[vk][q];
-          V[vk][p] = cs * vip - sn * viq;
-          V[vk][q] = sn * vip + cs * viq;
-        }
-      }
-      var values = new Array(n);
-      for (var d = 0; d < n; d++) values[d] = A[d][d];
-      return { values: values, vectors: V };
-    }
-
-    function computeEigenResidual(dofNodes, local, lambda, phi) {
-      var numerator = 0;
-      var denominator = 0;
-      for (var a = 0; a < dofNodes.length; a++) {
-        var gi = dofNodes[a];
-        var kphi = 0;
-        for (var r = 0; r < stiffnessRows[gi].length; r++) {
-          var entry = stiffnessRows[gi][r];
-          if (local.has(entry.j)) kphi += entry.value * phi[entry.j];
-        }
-        var mphi = mass[gi] * phi[gi];
-        var residual = kphi - lambda * mphi;
-        numerator += residual * residual;
-        denominator += kphi * kphi + lambda * lambda * mphi * mphi;
-      }
-      return Math.sqrt(numerator / Math.max(denominator, 1e-30));
-    }
-
-    function computeSelectedEigenmode() {
-      if (!nodes.length) { toast("먼저 영역을 생성하세요."); return; }
-      running = false;
-      eigenRunning = false;
-      eigenTime = 0;
-      eigenReady = false;
-
-      var dofNodes = makeDofNodes();
-      var dof = dofNodes.length;
-      eigenDof = dof;
-      var maxDof = Number(eigenMaxDofInput.value);
-      if (dof < 3) {
-        eigenMessage = "고유모드를 계산할 자유도가 너무 적습니다.";
-        toast(eigenMessage); updateStats(); return;
-      }
-      if (dof > maxDof) {
-        eigenMessage = "현재 자유도 " + dof + "개가 설정 한계 " + maxDof + "개를 넘었습니다. 격자 간격을 키우거나 최대 자유도를 올리세요.";
-        toast(eigenMessage); updateStats(); return;
-      }
-
-      var local = new Map();
-      for (var i = 0; i < dof; i++) local.set(dofNodes[i], i);
-      var A = makeZeroMatrix(dof, dof);
-      for (var rowLocal = 0; rowLocal < dof; rowLocal++) {
-        var gi = dofNodes[rowLocal];
-        var mi = Math.sqrt(Math.max(mass[gi], 1e-12));
-        for (var q = 0; q < stiffnessRows[gi].length; q++) {
-          var entry = stiffnessRows[gi][q];
-          var colLocal = local.get(entry.j);
-          if (colLocal === undefined) continue;
-          var mj = Math.sqrt(Math.max(mass[entry.j], 1e-12));
-          A[rowLocal][colLocal] += entry.value / (mi * mj);
-        }
-      }
-
-      var eig = jacobiSymmetricEigen(A);
-      var order = [];
-      for (var k = 0; k < eig.values.length; k++) order.push(k);
-      order.sort(function(a, b) { return eig.values[a] - eig.values[b]; });
-      var wanted = Math.min(Number(eigenModeIndexInput.value) - 1, order.length - 1);
-      wanted = Math.max(0, wanted);
-      var eigIndex = order[wanted];
-      eigenModeActualIndex = wanted + 1;
-      eigenLambda = Math.max(0, eig.values[eigIndex]);
-      eigenVector = new Array(nodes.length).fill(0);
-
-      for (var loc = 0; loc < dof; loc++) {
-        var globalNode = dofNodes[loc];
-        eigenVector[globalNode] = eig.vectors[loc][eigIndex] / Math.sqrt(Math.max(mass[globalNode], 1e-12));
-      }
-
-      var norm = 0;
-      for (var ni = 0; ni < nodes.length; ni++) norm += mass[ni] * eigenVector[ni] * eigenVector[ni];
-      norm = Math.sqrt(Math.max(norm, 1e-12));
-      for (var nn = 0; nn < nodes.length; nn++) eigenVector[nn] /= norm;
-      if (!isNeumann()) for (var b = 0; b < nodes.length; b++) if (nodes[b].boundary) eigenVector[b] = 0;
-
-      eigenResidual = computeEigenResidual(dofNodes, local, eigenLambda, eigenVector);
-      updateEigenDerivedValues();
-      eigenReady = true;
-      u = eigenVector.slice();
-      uPrev = eigenVector.slice();
-      eigenMessage = "고유모드 " + eigenModeActualIndex + "번 계산 완료. λ=" + formatNumber(eigenLambda, 5) + ", ω=" + formatNumber(eigenOmega, 5) + " rad/s, f=" + formatNumber(eigenFrequency, 5) + " Hz";
-      toast(eigenMessage);
-      render3DCanvas(); updateStats();
-    }
-
-    function updateEigenSolution(t) {
-      if (!eigenReady) return;
-      updateEigenDerivedValues();
-      var gamma = Number(dampingInput.value);
-      var amp = Number(eigenAmplitudeInput.value) * Math.cos(eigenOmega * t) * Math.exp(-gamma * t);
-      u = new Array(nodes.length);
-      for (var i = 0; i < nodes.length; i++) u[i] = amp * eigenVector[i];
-      if (!isNeumann()) for (var b = 0; b < nodes.length; b++) if (nodes[b].boundary) u[b] = 0;
-    }
-
-    function project3D(x, y, z) {
-      var cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
-      var x1 = x * cosZ - y * sinZ;
-      var y1 = x * sinZ + y * cosZ;
-      var cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-      var y2 = y1 * cosX - z * sinX;
-      var z2 = y1 * sinX + z * cosX;
-      var denom = Math.max(120, 820 - z2);
-      var perspective = 820 / denom;
-      return { x: viewW / 2 + x1 * perspective * zoom, y: viewH / 2 + y2 * perspective * zoom, depth: z2 };
-    }
-
-    function colorForValue(v) {
-      var x = Math.max(-1, Math.min(1, v));
-      var t, r, g, b;
-      if (x >= 0) {
-        t = x; r = Math.floor(50 + 205 * t); g = Math.floor(132 + 80 * (1 - t)); b = Math.floor(255 - 220 * t);
-      } else {
-        t = -x; r = Math.floor(42 + 24 * (1 - t)); g = Math.floor(125 - 70 * t); b = Math.floor(255 - 70 * t);
-      }
-      return "rgb(" + r + "," + g + "," + b + ")";
-    }
-
-    function renderDrawCanvas() {
-      drawCtx.clearRect(0, 0, drawW, drawH);
-      drawCtx.save();
-      var bg = drawCtx.createRadialGradient(drawW * 0.5, drawH * 0.35, 30, drawW * 0.5, drawH * 0.5, Math.max(drawW, drawH));
-      bg.addColorStop(0, "#101a30"); bg.addColorStop(1, "#020617");
-      drawCtx.fillStyle = bg; drawCtx.fillRect(0, 0, drawW, drawH);
-      drawCtx.strokeStyle = "rgba(96,165,250,0.09)"; drawCtx.lineWidth = 1;
-      for (var x = 0; x < drawW; x += 36) { drawCtx.beginPath(); drawCtx.moveTo(x, 0); drawCtx.lineTo(x, drawH); drawCtx.stroke(); }
-      for (var y = 0; y < drawH; y += 36) { drawCtx.beginPath(); drawCtx.moveTo(0, y); drawCtx.lineTo(drawW, y); drawCtx.stroke(); }
-      drawCtx.restore();
-
-      if (edges.length) {
-        drawCtx.save(); drawCtx.strokeStyle = "rgba(96,165,250,0.38)"; drawCtx.lineWidth = 0.75;
-        for (var e = 0; e < edges.length; e++) {
-          var a = nodes[edges[e][0]], b = nodes[edges[e][1]];
-          drawCtx.beginPath(); drawCtx.moveTo(a.x, a.y); drawCtx.lineTo(b.x, b.y); drawCtx.stroke();
-        }
-        drawCtx.restore();
-      }
-
-      if (nodes.length) {
-        drawCtx.save(); drawCtx.fillStyle = isNeumann() ? "rgba(96,165,250,0.90)" : "rgba(248,113,113,0.85)";
-        for (var ni = 0; ni < nodes.length; ni++) {
-          if (!nodes[ni].boundary) continue;
-          drawCtx.beginPath(); drawCtx.arc(nodes[ni].x, nodes[ni].y, 1.25, 0, Math.PI * 2); drawCtx.fill();
-        }
-        drawCtx.restore();
-      }
-
-      if (boundary.length >= 2) {
-        drawCtx.save(); drawCtx.lineWidth = 3; drawCtx.lineJoin = "round"; drawCtx.lineCap = "round"; drawCtx.strokeStyle = "rgba(248,250,252,0.96)";
-        drawCtx.beginPath(); drawCtx.moveTo(boundary[0].x, boundary[0].y); for (var i = 1; i < boundary.length; i++) drawCtx.lineTo(boundary[i].x, boundary[i].y); drawCtx.stroke();
-        if (!drawing && boundary.length > 4) {
-          drawCtx.fillStyle = "rgba(37,99,235,0.10)"; drawCtx.beginPath(); drawCtx.moveTo(boundary[0].x, boundary[0].y);
-          for (var j = 1; j < boundary.length; j++) drawCtx.lineTo(boundary[j].x, boundary[j].y); drawCtx.closePath(); drawCtx.fill();
-        }
-        drawCtx.restore();
-      }
-    }
-
-    function draw3DReferenceGrid() {
-      viewCtx.save(); viewCtx.strokeStyle = "rgba(96,165,250,0.10)"; viewCtx.lineWidth = 1;
-      var size = 420, step = 32;
-      for (var x = -size; x <= size; x += step) { var a = project3D(x, -size, 0), b = project3D(x, size, 0); viewCtx.beginPath(); viewCtx.moveTo(a.x, a.y); viewCtx.lineTo(b.x, b.y); viewCtx.stroke(); }
-      for (var y = -size; y <= size; y += step) { var c = project3D(-size, y, 0), d = project3D(size, y, 0); viewCtx.beginPath(); viewCtx.moveTo(c.x, c.y); viewCtx.lineTo(d.x, d.y); viewCtx.stroke(); }
-      viewCtx.restore();
-    }
-
-    function render3DCanvas() {
-      viewCtx.clearRect(0, 0, viewW, viewH);
-      var gradient = viewCtx.createRadialGradient(viewW * 0.5, viewH * 0.30, 30, viewW * 0.5, viewH * 0.5, Math.max(viewW, viewH));
-      gradient.addColorStop(0, "#121a2d"); gradient.addColorStop(1, "#020617");
-      viewCtx.fillStyle = gradient; viewCtx.fillRect(0, 0, viewW, viewH);
-      draw3DReferenceGrid();
-
-      if (!nodes.length || !triangles.length) {
-        viewCtx.save(); viewCtx.fillStyle = "rgba(226,232,240,0.82)"; viewCtx.font = "15px system-ui"; viewCtx.textAlign = "center";
-        viewCtx.fillText("왼쪽에서 영역을 그리고 FEM 조립을 누르세요.", viewW / 2, viewH / 2); viewCtx.restore();
-        updateHud(); return;
-      }
-
-      var cx = nodes.reduce(function(sum, p) { return sum + p.x; }, 0) / nodes.length;
-      var cy = nodes.reduce(function(sum, p) { return sum + p.y; }, 0) / nodes.length;
-      var heightScale = Number(heightScaleInput.value);
-      var maxAbs = 1e-9;
-      for (var i = 0; i < u.length; i++) maxAbs = Math.max(maxAbs, Math.abs(u[i]));
-      var normalized = viewModeInput.value === "normalized";
-      var projected = nodes.map(function(p, index) {
-        var x = p.x - cx;
-        var y = -(p.y - cy);
-        var z = normalized ? (u[index] / maxAbs) * heightScale : u[index] * heightScale;
-        return project3D(x, y, z);
-      });
-      var faces = triangles.map(function(tri) {
-        var a = projected[tri[0]], b = projected[tri[1]], c = projected[tri[2]];
-        var avgVal = (u[tri[0]] + u[tri[1]] + u[tri[2]]) / (3 * maxAbs);
-        return { tri: tri, depth: (a.depth + b.depth + c.depth) / 3, color: colorForValue(avgVal) };
-      }).sort(function(f1, f2) { return f1.depth - f2.depth; });
-
-      var wireOpacity = Number(wireOpacityInput.value);
-      viewCtx.save();
-      for (var f = 0; f < faces.length; f++) {
-        var face = faces[f];
-        var p0 = projected[face.tri[0]], p1 = projected[face.tri[1]], p2 = projected[face.tri[2]];
-        viewCtx.beginPath(); viewCtx.moveTo(p0.x, p0.y); viewCtx.lineTo(p1.x, p1.y); viewCtx.lineTo(p2.x, p2.y); viewCtx.closePath();
-        viewCtx.fillStyle = face.color; viewCtx.fill();
-        if (wireOpacity > 0) { viewCtx.strokeStyle = "rgba(1,7,20," + wireOpacity + ")"; viewCtx.lineWidth = 0.7; viewCtx.stroke(); }
-      }
-      viewCtx.restore();
-      updateHud(maxAbs);
-    }
-
-    function updateHud(maxAbs) {
-      var text = [];
-      text.push("boundary: " + activeBoundaryName());
-      text.push("nodes: " + nodes.length + "  triangles: " + triangles.length);
-      text.push("mode: " + (eigenRunning ? "eigenmode" : running ? "time stepping" : "paused"));
-      text.push("time: " + formatNumber(eigenRunning ? eigenTime : simTime, 2) + " s");
-      if (Number.isFinite(maxAbs)) text.push("max |u|: " + formatNumber(maxAbs, 4));
-      if (eigenReady) {
-        text.push("λ: " + formatNumber(eigenLambda, 5));
-        text.push("ω: " + formatNumber(eigenOmega, 5) + " rad/s");
-        text.push("f: " + formatNumber(eigenFrequency, 5) + " Hz");
-      }
-      viewHud.textContent = text.join(String.fromCharCode(10));
-    }
-
-    function getStatusText() {
-      if (!nodes.length) return "아직 영역이 생성되지 않았습니다.\n" + eigenMessage;
-      var freeDof = makeDofNodes().length;
-      return [
-        "경계조건: " + activeBoundaryName(),
-        "노드 수: " + nodes.length,
-        "자유도: " + freeDof,
-        "삼각형 수: " + triangles.length,
-        "엣지 수: " + edges.length,
-        "경계 노드: " + nodes.filter(function(n) { return n.boundary; }).length,
-        "일반 파동 시간: " + simTime.toFixed(3) + " s",
-        "일반 파동 상태: " + (running ? "실행 중" : "정지"),
-        "고유모드 상태: " + (eigenRunning ? "실행 중" : eigenReady ? "계산 완료" : "미계산"),
-        "고유모드 번호: " + (eigenModeActualIndex || "-"),
-        "고윳값 λ: " + (eigenReady ? formatNumber(eigenLambda, 8) : "-"),
-        "각진동수 ω: " + (eigenReady ? formatNumber(eigenOmega, 8) + " rad/s" : "-"),
-        "주파수 f: " + (eigenReady ? formatNumber(eigenFrequency, 8) + " Hz" : "-"),
-        "주기 T: " + (eigenReady ? formatNumber(eigenPeriod, 8) + " s" : "-"),
-        "고유식 잔차: " + (eigenReady ? formatNumber(eigenResidual, 6) : "-"),
-        "고유값 자유도: " + (eigenDof || "-"),
-        "감쇠 γ: " + Number(dampingInput.value).toFixed(3) + " (" + dampingLabel(Number(dampingInput.value)) + ")",
-        "메시지: " + (eigenMessage || lastMeshMessage)
-      ].join(String.fromCharCode(10));
-    }
-
-    function updateStats() { statsEl.textContent = getStatusText(); }
-
-    function resetAll() {
-      running = false; eigenRunning = false; mode = "draw"; drawing = false; boundary = [];
-      nodes = []; triangles = []; edges = []; mass = []; stiffnessRows = []; u = []; uPrev = []; initialU = [];
-      simTime = 0; eigenTime = 0; accumulator = 0; lastMeshMessage = "초기화되었습니다.";
-      invalidateEigen("고유모드가 아직 계산되지 않았습니다.");
-      toast("초기화되었습니다. 왼쪽에 새 영역을 그리세요."); renderDrawCanvas(); render3DCanvas(); updateStats();
-    }
-
-    function runSelfTests() {
-      console.assert(pointInPolygon({ x: 5, y: 5 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }]) === true, "pointInPolygon inside");
-      console.assert(pointInPolygon({ x: 15, y: 5 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }]) === false, "pointInPolygon outside");
-      console.assert(Math.abs(triangleArea({ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 10 }) - 50) < 1e-9, "triangle area");
-      var eig = jacobiSymmetricEigen([[2, 0], [0, 5]]);
-      console.assert(Math.abs(eig.values[0] - 2) < 1e-6 || Math.abs(eig.values[1] - 2) < 1e-6, "eigenvalue 2");
-      console.assert(Math.abs(eig.values[0] - 5) < 1e-6 || Math.abs(eig.values[1] - 5) < 1e-6, "eigenvalue 5");
-      var flat = project3D(0, 0, 0), high = project3D(0, 0, 100);
-      console.assert(high.y < flat.y, "top-down projection should show positive height upward");
-      console.log("Self tests passed");
-    }
-
-    drawCanvas.addEventListener("pointerdown", function(e) {
-      if (mode !== "draw") return;
-      drawing = true; running = false; eigenRunning = false; boundary = [pointerOnCanvas(e, drawCanvas)];
-      nodes = []; triangles = []; edges = []; mass = []; stiffnessRows = []; u = []; uPrev = []; initialU = [];
-      simTime = 0; eigenTime = 0; accumulator = 0; invalidateEigen("새 영역을 그리고 있습니다.");
-      toast("드래그 중입니다. 마우스를 떼면 자동으로 닫힙니다."); renderDrawCanvas(); render3DCanvas(); updateStats();
-    });
-
-    drawCanvas.addEventListener("pointermove", function(e) {
-      if (!drawing || mode !== "draw") return;
-      var p = pointerOnCanvas(e, drawCanvas); var last = boundary[boundary.length - 1];
-      if (!last || distance(p, last) > 3) { boundary.push(p); renderDrawCanvas(); }
-    });
-
-    window.addEventListener("pointerup", function() {
-      if (!drawing) return;
-      drawing = false;
-      if (boundary.length > 8) {
-        var first = boundary[0]; var last = boundary[boundary.length - 1];
-        if (distance(first, last) > 2) boundary.push({ x: first.x, y: first.y });
-        toast("외곽선이 그려졌습니다. '영역 생성 / FEM 조립'을 누르세요.");
-      } else toast("선이 너무 짧습니다. 더 크게 드래그해서 그리세요.");
-      renderDrawCanvas();
-    });
-
-    viewCanvas.addEventListener("pointerdown", function(e) { draggingView = true; lastViewPointer = pointerOnCanvas(e, viewCanvas); });
-    window.addEventListener("pointermove", function(e) {
-      if (!draggingView) return;
-      var p = pointerOnCanvas(e, viewCanvas); var dx = p.x - lastViewPointer.x; var dy = p.y - lastViewPointer.y;
-      rotZ += dx * 0.01; rotX -= dy * 0.01; rotX = Math.max(0.18, Math.min(1.45, rotX)); lastViewPointer = p; render3DCanvas();
-    });
-    window.addEventListener("pointerup", function() { draggingView = false; });
-    viewCanvas.addEventListener("wheel", function(e) { e.preventDefault(); zoom *= e.deltaY > 0 ? 0.92 : 1.08; zoom = Math.max(0.35, Math.min(3.2, zoom)); render3DCanvas(); }, { passive: false });
-
-    drawModeBtn.addEventListener("click", function() { running = false; eigenRunning = false; mode = "draw"; toast("그리기 모드입니다. 왼쪽에 새 영역을 그리세요."); updateStats(); });
-    sampleBtn.addEventListener("click", makeSampleCircle);
-    buildBtn.addEventListener("click", buildDomain);
-    startBtn.addEventListener("click", function() {
-      if (!nodes.length) { toast("먼저 영역을 생성하세요."); return; }
-      eigenRunning = false; running = !running; updateStats();
-    });
-    pulseBtn.addEventListener("click", addPulse);
-    computeEigenBtn.addEventListener("click", computeSelectedEigenmode);
-    eigenStartBtn.addEventListener("click", function() {
-      if (!eigenReady) { toast("먼저 선택 고유모드를 계산하세요."); return; }
-      running = false; eigenRunning = !eigenRunning; updateStats();
-    });
-    clearBtn.addEventListener("click", resetAll);
-
-    [boundaryConditionInput, gridStepInput, nodeBudgetInput, waveSpeedInput, dampingInput, cflScaleInput, eigenModeIndexInput, eigenMaxDofInput, eigenAmplitudeInput, heightScaleInput, viewModeInput, wireOpacityInput].forEach(function(input) {
-      input.addEventListener("input", function() {
-        updateSliderLabels();
-        if (input === boundaryConditionInput && nodes.length) {
-          buildDomain();
-          return;
-        }
-        if (input === waveSpeedInput && eigenReady) updateEigenDerivedValues();
-        if ((input === eigenModeIndexInput || input === eigenMaxDofInput) && nodes.length) invalidateEigen("고유모드 설정이 바뀌었습니다. 다시 계산하세요.");
-        render3DCanvas(); updateStats();
-      });
-    });
-
-    function animationLoop(now) {
-      var elapsed = Math.min(0.05, (now - lastTime) / 1000); lastTime = now;
-      if (eigenRunning && eigenReady) {
-        eigenTime += elapsed; updateEigenSolution(eigenTime); render3DCanvas(); updateStats();
-      } else if (running && nodes.length) {
-        var h = Number(gridStepInput.value); var c = Number(waveSpeedInput.value); var cfl = Number(cflScaleInput.value);
-        var dt = cfl * h / Math.max(c, 1) / Math.SQRT2;
-        accumulator += elapsed; var guard = 0;
-        while (accumulator >= dt && guard < 12) { stepSimulation(dt); accumulator -= dt; guard++; }
-        render3DCanvas(); updateStats();
-      }
-      requestAnimationFrame(animationLoop);
-    }
-
-    window.addEventListener("resize", resize);
-    updateSliderLabels(); resize(); updateStats(); runSelfTests(); requestAnimationFrame(animationLoop);
-  </script>
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const drawCanvas = $("drawCanvas"), viewCanvas = $("viewCanvas");
+const dctx = drawCanvas.getContext("2d"), vctx = viewCanvas.getContext("2d");
+
+const controls = {
+  boundaryType: $("boundaryType"), gridStep: $("gridStep"), maxNodes: $("maxNodes"),
+  waveSpeed: $("waveSpeed"), scaleMm: $("scaleMm"), damping: $("damping"), timeScale: $("timeScale"),
+  modeIndex: $("modeIndex"), eigenMaxDof: $("eigenMaxDof"), heightScale: $("heightScale"),
+  normalization: $("normalization"), meshOpacity: $("meshOpacity")
+};
+
+let drawW=1, drawH=1, viewW=1, viewH=1;
+let boundary=[], drawing=false, interactionMode="draw";
+let nodes=[], triangles=[], edges=[], boundaryNodes=new Set();
+let mass=[], stiffness=[];
+let u=[], uPrev=[], initialAmplitude=1;
+let runMode="idle", simTime=0, lastFrame=performance.now(), accumulator=0;
+let rotX=0.92, rotZ=0.68, zoom=1, draggingView=false, lastViewPoint=null;
+let eigen={ready:false, lambda:0, vector:[], residual:NaN, mode:0, omega0:0, frequency:0, period:Infinity};
+
+function setStatus(label, kind="") {
+  $("statusLabel").textContent=label;
+  $("statusDot").className="dot"+(kind?" "+kind:"");
+}
+function message(text){ $("drawHint").textContent=text; }
+function num(v,d=3){ return Number.isFinite(v)?Number(v).toFixed(d):"—"; }
+
+function fitCanvas(canvas,ctx){
+  const dpr=window.devicePixelRatio||1, r=canvas.getBoundingClientRect();
+  const w=Math.max(1,Math.floor(r.width)), h=Math.max(1,Math.floor(r.height));
+  canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0); return {w,h};
+}
+function resize(){ const a=fitCanvas(drawCanvas,dctx),b=fitCanvas(viewCanvas,vctx); drawW=a.w;drawH=a.h;viewW=b.w;viewH=b.h;render2D();render3D(); }
+
+function updateLabels(){
+  $("gridStepValue").textContent=controls.gridStep.value+" px";
+  $("maxNodesValue").textContent=controls.maxNodes.value;
+  $("waveSpeedValue").textContent=Number(controls.waveSpeed.value).toFixed(1)+" m/s";
+  $("scaleMmValue").textContent=controls.scaleMm.value+" mm/px";
+  $("dampingValue").textContent=Number(controls.damping.value).toFixed(2)+" s⁻¹";
+  $("timeScaleValue").textContent=Number(controls.timeScale.value).toFixed(2)+"×";
+  $("modeIndexValue").textContent=controls.modeIndex.value;
+  $("eigenMaxDofValue").textContent=controls.eigenMaxDof.value;
+  $("heightScaleValue").textContent=controls.heightScale.value;
+  $("meshOpacityValue").textContent=Number(controls.meshOpacity.value).toFixed(2);
+}
+
+function pointer(e,canvas){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+function bounds(poly){ let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity; for(const p of poly){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);} return {minX,minY,maxX,maxY}; }
+function insidePolygon(p,poly){ let inside=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const a=poly[i],b=poly[j]; const cross=((a.y>p.y)!==(b.y>p.y))&&(p.x<(b.x-a.x)*(p.y-a.y)/((b.y-a.y)||1e-12)+a.x); if(cross)inside=!inside; } return inside; }
+function triArea(a,b,c){ return Math.abs((b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y))/2; }
+function edgeKey(a,b){ return a<b?a+":"+b:b+":"+a; }
+
+function createCircle(){
+  stopAll(); boundary=[]; const cx=drawW/2,cy=drawH/2,r=Math.min(drawW,drawH)*0.34;
+  for(let i=0;i<=180;i++){ const t=2*Math.PI*i/180; boundary.push({x:cx+r*Math.cos(t),y:cy+r*Math.sin(t)}); }
+  interactionMode="draw"; clearMesh(); message("원형 영역이 준비되었습니다. Mesh 생성 / FEM 조립을 누르세요."); render2D();
+}
+function clearMesh(){ nodes=[];triangles=[];edges=[];boundaryNodes=new Set();mass=[];stiffness=[];u=[];uPrev=[];eigen={ready:false,lambda:0,vector:[],residual:NaN,mode:0,omega0:0,frequency:0,period:Infinity}; $("eigenPlayBtn").disabled=true; updateDiagnostics();render3D(); }
+function stopAll(){ runMode="idle"; accumulator=0; $("waveBtn").textContent="일반 파동 시작"; $("eigenPlayBtn").textContent="고유모드 진동 시작"; }
+
+function buildMesh(){
+  if(boundary.length<8){ message("먼저 폐곡선을 그리세요."); return; }
+  stopAll(); clearMesh(); setStatus("Mesh 생성 중","warn");
+  const h=Number(controls.gridStep.value), maxN=Number(controls.maxNodes.value), b=bounds(boundary);
+  const minX=Math.max(0,Math.floor(b.minX/h)*h), minY=Math.max(0,Math.floor(b.minY/h)*h);
+  const maxX=Math.min(drawW,Math.ceil(b.maxX/h)*h), maxY=Math.min(drawH,Math.ceil(b.maxY/h)*h);
+  const cols=Math.floor((maxX-minX)/h), rows=Math.floor((maxY-minY)/h), map=new Map();
+  const key=(i,j)=>i+","+j;
+  for(let j=0;j<=rows;j++) for(let i=0;i<=cols;i++){
+    const p={x:minX+i*h,y:minY+j*h};
+    if(insidePolygon(p,boundary)){ if(nodes.length>=maxN){ setStatus("노드 제한 초과","warn"); message("최대 노드 수에 도달했습니다. 격자 간격을 키우거나 최대 노드 수를 늘리세요."); clearMesh(); return; } map.set(key(i,j),nodes.length); nodes.push({x:p.x,y:p.y,i,j}); }
+  }
+  const id=(i,j)=>map.get(key(i,j));
+  for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){
+    const a=id(i,j),b0=id(i+1,j),c=id(i,j+1),d=id(i+1,j+1);
+    if(a!==undefined&&b0!==undefined&&c!==undefined) triangles.push([a,b0,c]);
+    if(b0!==undefined&&d!==undefined&&c!==undefined) triangles.push([b0,d,c]);
+  }
+  if(nodes.length<8||triangles.length<4){ clearMesh();setStatus("Mesh 실패","warn");message("유효한 삼각형이 충분하지 않습니다. 더 큰 영역을 그리세요.");return; }
+  const edgeCount=new Map();
+  for(const t of triangles){ for(const e of [[t[0],t[1]],[t[1],t[2]],[t[2],t[0]]]){ const k=edgeKey(e[0],e[1]); edgeCount.set(k,(edgeCount.get(k)||0)+1); } }
+  edges=[...edgeCount.keys()].map(s=>s.split(":").map(Number));
+  for(const [k,count] of edgeCount){ if(count===1){ const [a,b0]=k.split(":").map(Number); boundaryNodes.add(a);boundaryNodes.add(b0); } }
+  assembleFEM(); initializePulse(); interactionMode="sim"; setStatus("FEM 준비 완료","ok"); message("FEM 조립이 완료되었습니다. 일반 파동 또는 고유모드를 실행할 수 있습니다."); updateDiagnostics();render2D();render3D();
+}
+
+function assembleFEM(){
+  mass=new Array(nodes.length).fill(0); const rows=Array.from({length:nodes.length},()=>new Map());
+  for(const t of triangles){
+    const p=[nodes[t[0]],nodes[t[1]],nodes[t[2]]],A=triArea(p[0],p[1],p[2]); if(A<1e-12)continue;
+    const bb=[p[1].y-p[2].y,p[2].y-p[0].y,p[0].y-p[1].y], cc=[p[2].x-p[1].x,p[0].x-p[2].x,p[1].x-p[0].x];
+    for(let i=0;i<3;i++){ mass[t[i]]+=A/3; for(let j=0;j<3;j++){ const v=(bb[i]*bb[j]+cc[i]*cc[j])/(4*A),r=rows[t[i]]; r.set(t[j],(r.get(t[j])||0)+v); } }
+  }
+  stiffness=rows.map(r=>[...r.entries()].map(([j,value])=>({j,value})));
+}
+
+function isDirichlet(){ return controls.boundaryType.value==="dirichlet"; }
+function initializePulse(){
+  const n=nodes.length,cx=nodes.reduce((s,p)=>s+p.x,0)/n,cy=nodes.reduce((s,p)=>s+p.y,0)/n,b=bounds(boundary),sigma=Math.max(12,Math.min(b.maxX-b.minX,b.maxY-b.minY)*.14);
+  u=new Array(n);uPrev=new Array(n);let max=0;
+  for(let i=0;i<n;i++){ const dx=nodes[i].x-cx,dy=nodes[i].y-cy,v=Math.exp(-(dx*dx+dy*dy)/(2*sigma*sigma)); u[i]=(isDirichlet()&&boundaryNodes.has(i))?0:v;uPrev[i]=u[i];max=Math.max(max,Math.abs(u[i])); }
+  initialAmplitude=Math.max(max,1e-9);simTime=0;
+}
+function addPulse(){ if(!nodes.length){message("먼저 Mesh를 생성하세요.");return;} const n=nodes.length,cx=nodes.reduce((s,p)=>s+p.x,0)/n,cy=nodes.reduce((s,p)=>s+p.y,0)/n,sigma=Number(controls.gridStep.value)*2.2; for(let i=0;i<n;i++){const dx=nodes[i].x-cx,dy=nodes[i].y-cy;u[i]+=.8*Math.exp(-(dx*dx+dy*dy)/(2*sigma*sigma));if(isDirichlet()&&boundaryNodes.has(i))u[i]=0;} initialAmplitude=Math.max(initialAmplitude,maxAbs(u));render3D(); }
+function maxAbs(a){ let m=0;for(const v of a)m=Math.max(m,Math.abs(v));return m; }
+
+function stableDt(){
+  const hPx=Number(controls.gridStep.value), metersPerPx=Number(controls.scaleMm.value)/1000, c=Number(controls.waveSpeed.value), cPx=c/metersPerPx;
+  return .18*hPx/Math.max(cPx,1e-9);
+}
+function stepWave(dt){
+  const gamma=Number(controls.damping.value), metersPerPx=Number(controls.scaleMm.value)/1000, cPx=Number(controls.waveSpeed.value)/metersPerPx;
+  const next=new Array(u.length).fill(0), denom=1+gamma*dt, oldFactor=1-gamma*dt, cdt2=cPx*cPx*dt*dt;
+  for(let i=0;i<u.length;i++){
+    if(isDirichlet()&&boundaryNodes.has(i)){next[i]=0;continue;}
+    if(mass[i]<=1e-14){next[i]=u[i];continue;}
+    let Ku=0;for(const e of stiffness[i])Ku+=e.value*u[e.j];
+    next[i]=(2*u[i]-oldFactor*uPrev[i]-cdt2*Ku/mass[i])/denom;
+    if(!Number.isFinite(next[i]))next[i]=0;
+  }
+  uPrev=u;u=next;simTime+=dt;
+}
+
+function freeDofs(){ if(!isDirichlet())return nodes.map((_,i)=>i); return nodes.map((_,i)=>i).filter(i=>!boundaryNodes.has(i)); }
+function zeroMatrix(n){ return Array.from({length:n},()=>new Float64Array(n)); }
+function jacobiEigen(A,maxIter=0){
+  const n=A.length,V=zeroMatrix(n);for(let i=0;i<n;i++)V[i][i]=1;
+  if(!maxIter)maxIter=Math.max(100,n*n*16);
+  for(let iter=0;iter<maxIter;iter++){
+    let p=0,q=1,m=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const v=Math.abs(A[i][j]);if(v>m){m=v;p=i;q=j;}}
+    if(m<1e-10)break;
+    const app=A[p][p],aqq=A[q][q],apq=A[p][q],theta=.5*Math.atan2(2*apq,aqq-app),c=Math.cos(theta),s=Math.sin(theta);
+    for(let k=0;k<n;k++)if(k!==p&&k!==q){const akp=A[k][p],akq=A[k][q];A[k][p]=A[p][k]=c*akp-s*akq;A[k][q]=A[q][k]=s*akp+c*akq;}
+    A[p][p]=c*c*app-2*s*c*apq+s*s*aqq;A[q][q]=s*s*app+2*s*c*apq+c*c*aqq;A[p][q]=A[q][p]=0;
+    for(let k=0;k<n;k++){const vkp=V[k][p],vkq=V[k][q];V[k][p]=c*vkp-s*vkq;V[k][q]=s*vkp+c*vkq;}
+  }
+  return {values:Array.from({length:n},(_,i)=>A[i][i]),vectors:V};
+}
+
+function solveEigenmode(){
+  if(!nodes.length){message("먼저 Mesh를 생성하세요.");return;}
+  stopAll();setStatus("고유값 계산 중","warn");
+  const dofs=freeDofs(),n=dofs.length,limit=Number(controls.eigenMaxDof.value),modeNo=Number(controls.modeIndex.value);
+  if(n<2){setStatus("자유도 부족","warn");message("고유값 계산에 필요한 자유도가 부족합니다.");return;}
+  if(n>limit){setStatus("고유값 계산 제한","warn");message("자유도 "+n+"개가 설정한 한계 "+limit+"개를 초과합니다. 격자 간격을 키우거나 최대 자유도를 늘리세요.");return;}
+  if(modeNo>n){setStatus("모드 번호 초과","warn");message("선택한 모드 번호가 자유도 수보다 큽니다.");return;}
+  const local=new Map(dofs.map((g,i)=>[g,i])),A=zeroMatrix(n);
+  for(let r=0;r<n;r++){const gi=dofs[r],mi=Math.sqrt(mass[gi]);for(const e of stiffness[gi]){const c=local.get(e.j);if(c===undefined)continue;A[r][c]+=e.value/(mi*Math.sqrt(mass[e.j]));}}
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const avg=.5*(A[i][j]+A[j][i]);A[i][j]=A[j][i]=avg;}
+  const result=jacobiEigen(A),order=result.values.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v),pick=order[modeNo-1];
+  const phi=new Array(nodes.length).fill(0);for(let l=0;l<n;l++){const g=dofs[l];phi[g]=result.vectors[l][pick.i]/Math.sqrt(mass[g]);}
+  let norm=0;for(let i=0;i<phi.length;i++)norm+=mass[i]*phi[i]*phi[i];norm=Math.sqrt(Math.max(norm,1e-30));for(let i=0;i<phi.length;i++)phi[i]/=norm;
+  let sign=1;for(const v of phi){if(Math.abs(v)>1e-10){sign=v<0?-1:1;break;}}if(sign<0)for(let i=0;i<phi.length;i++)phi[i]*=-1;
+  const lambda=Math.max(0,pick.v),res=residual(phi,lambda),mpp=Number(controls.scaleMm.value)/1000,c=Number(controls.waveSpeed.value),lambdaPhysical=lambda/(mpp*mpp),omega0=c*Math.sqrt(lambdaPhysical),freq=omega0/(2*Math.PI);
+  eigen={ready:true,lambda,vector:phi,residual:res,mode:modeNo,omega0,frequency:freq,period:freq>1e-14?1/freq:Infinity};
+  u=phi.slice();uPrev=phi.slice();initialAmplitude=Math.max(maxAbs(phi),1e-9);simTime=0;$("eigenPlayBtn").disabled=false;
+  setStatus("고유모드 계산 완료","ok");message("고유모드 "+modeNo+"번을 계산했습니다. 잔차와 주파수를 진단 패널에서 확인하세요.");updateDiagnostics();render3D();
+}
+function residual(phi,lambda){
+  let nr=0,nk=0;for(let i=0;i<phi.length;i++){let k=0;for(const e of stiffness[i])k+=e.value*phi[e.j];const r=k-lambda*mass[i]*phi[i];nr+=r*r;nk+=k*k;}return Math.sqrt(nr)/Math.max(Math.sqrt(nk),1e-30);
+}
+function dampedModalFactor(t){
+  const g=Number(controls.damping.value),w=eigen.omega0;
+  if(g<1e-14)return Math.cos(w*t);
+  if(w<1e-14)return 1;
+  if(g<w){const wd=Math.sqrt(w*w-g*g);return Math.exp(-g*t)*(Math.cos(wd*t)+(g/wd)*Math.sin(wd*t));}
+  if(Math.abs(g-w)<1e-10*Math.max(1,w))return Math.exp(-g*t)*(1+g*t);
+  const s=Math.sqrt(g*g-w*w),r1=-g+s,r2=-g-s,A=-r2/(r1-r2),B=r1/(r1-r2);return A*Math.exp(r1*t)+B*Math.exp(r2*t);
+}
+function updateEigen(t){const q=dampedModalFactor(t);u=eigen.vector.map(v=>q*v);}
+
+function project(x,y,z){
+  const cz=Math.cos(rotZ),sz=Math.sin(rotZ),x1=x*cz-y*sz,y1=x*sz+y*cz,cx=Math.cos(rotX),sx=Math.sin(rotX),y2=y1*cx-z*sx,z2=y1*sx+z*cx,p=760/Math.max(160,760-z2);
+  return {x:viewW/2+x1*p*zoom,y:viewH/2+y2*p*zoom,d:z2};
+}
+function color(v){const x=Math.max(-1,Math.min(1,v));if(x<0){const t=-x;return `rgb(${Math.round(23+42*(1-t))},${Math.round(59+85*(1-t))},${Math.round(143+112*(1-t))})`;}const t=x;return `rgb(${Math.round(215+40*t)},${Math.round(232-145*t)},${Math.round(255-190*t)})`;}
+function render2D(){
+  dctx.clearRect(0,0,drawW,drawH);dctx.save();dctx.strokeStyle="rgba(112,145,186,.09)";dctx.lineWidth=1;for(let x=0;x<drawW;x+=32){dctx.beginPath();dctx.moveTo(x,0);dctx.lineTo(x,drawH);dctx.stroke();}for(let y=0;y<drawH;y+=32){dctx.beginPath();dctx.moveTo(0,y);dctx.lineTo(drawW,y);dctx.stroke();}dctx.restore();
+  if(edges.length){dctx.save();dctx.strokeStyle="rgba(44,127,255,.34)";dctx.lineWidth=.75;for(const [a,b] of edges){dctx.beginPath();dctx.moveTo(nodes[a].x,nodes[a].y);dctx.lineTo(nodes[b].x,nodes[b].y);dctx.stroke();}dctx.restore();}
+  if(boundary.length>1){dctx.save();dctx.lineJoin="round";dctx.lineCap="round";dctx.lineWidth=2.5;dctx.strokeStyle="#f1f5f9";dctx.beginPath();dctx.moveTo(boundary[0].x,boundary[0].y);for(let i=1;i<boundary.length;i++)dctx.lineTo(boundary[i].x,boundary[i].y);dctx.stroke();if(!drawing){dctx.fillStyle="rgba(20,118,255,.06)";dctx.closePath();dctx.fill();}dctx.restore();}
+  if(boundaryNodes.size){dctx.save();dctx.fillStyle=isDirichlet()?"#ff7b8d":"#4aa3ff";for(const i of boundaryNodes){dctx.beginPath();dctx.arc(nodes[i].x,nodes[i].y,1.6,0,2*Math.PI);dctx.fill();}dctx.restore();}
+}
+function renderGrid3D(){vctx.save();vctx.strokeStyle="rgba(102,128,163,.10)";vctx.lineWidth=1;const s=380,step=32;for(let x=-s;x<=s;x+=step){const a=project(x,-s,0),b=project(x,s,0);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();}for(let y=-s;y<=s;y+=step){const a=project(-s,y,0),b=project(s,y,0);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();}vctx.restore();}
+function render3D(){
+  vctx.clearRect(0,0,viewW,viewH);const g=vctx.createRadialGradient(viewW*.5,viewH*.34,20,viewW*.5,viewH*.5,Math.max(viewW,viewH));g.addColorStop(0,"#111a29");g.addColorStop(1,"#020304");vctx.fillStyle=g;vctx.fillRect(0,0,viewW,viewH);renderGrid3D();
+  if(!nodes.length){vctx.fillStyle="rgba(210,222,239,.72)";vctx.font="14px system-ui";vctx.textAlign="center";vctx.fillText("Mesh를 생성하면 변위장이 표시됩니다.",viewW/2,viewH/2);return;}
+  const cx=nodes.reduce((s,p)=>s+p.x,0)/nodes.length,cy=nodes.reduce((s,p)=>s+p.y,0)/nodes.length,frameMax=Math.max(maxAbs(u),1e-12),den=controls.normalization.value==="auto"?frameMax:initialAmplitude,hs=Number(controls.heightScale.value),proj=nodes.map((p,i)=>project(p.x-cx,-(p.y-cy),(u[i]/Math.max(den,1e-12))*hs));
+  const faces=triangles.map(t=>({t,d:(proj[t[0]].d+proj[t[1]].d+proj[t[2]].d)/3,v:(u[t[0]]+u[t[1]]+u[t[2]])/(3*Math.max(den,1e-12))})).sort((a,b)=>a.d-b.d),op=Number(controls.meshOpacity.value);
+  for(const f of faces){const a=proj[f.t[0]],b=proj[f.t[1]],c=proj[f.t[2]];vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.lineTo(c.x,c.y);vctx.closePath();vctx.fillStyle=color(f.v);vctx.fill();if(op>0){vctx.strokeStyle=`rgba(3,8,16,${op})`;vctx.lineWidth=.65;vctx.stroke();}}
+}
+
+function updateDiagnostics(){
+  $("meshHud").textContent=`Nodes ${nodes.length} · Elements ${triangles.length}`;
+  $("modeHud").textContent=runMode==="wave"?"Transient wave":runMode==="eigen"?`Eigenmode ${eigen.mode}`:"Idle";
+  if(!nodes.length){$("stats").textContent="아직 영역이 생성되지 않았습니다.";return;}
+  const btype=isDirichlet()?"Dirichlet 고정":"Neumann 자유",dofs=freeDofs().length,dt=stableDt();
+  const lines=[`경계조건       ${btype}`,`노드 / 요소    ${nodes.length} / ${triangles.length}`,`경계 노드      ${boundaryNodes.size}`,`자유도          ${dofs}`,`안정 시간간격   ${dt.toExponential(3)} s`,`시뮬레이션 시간 ${simTime.toFixed(3)} s`,`실행 모드       ${runMode}`];
+  if(eigen.ready){lines.push("",`고유모드 번호   ${eigen.mode}`,`고윳값 λ(px⁻²) ${eigen.lambda.toExponential(6)}`,`각진동수 ω₀    ${eigen.omega0.toFixed(6)} rad/s`,`주파수 f       ${eigen.frequency.toFixed(6)} Hz`,`주기 T         ${Number.isFinite(eigen.period)?eigen.period.toFixed(6):"∞"} s`,`상대 잔차      ${eigen.residual.toExponential(3)}`,`잔차 판정       ${eigen.residual<1e-6?"매우 좋음":eigen.residual<1e-4?"양호":"점검 필요"}`);}
+  $("stats").textContent=lines.join("\n");
+}
+
+function animate(now){
+  const elapsed=Math.min(.05,(now-lastFrame)/1000)*Number(controls.timeScale.value);lastFrame=now;
+  if(runMode==="wave"&&nodes.length){const dt=stableDt();accumulator+=elapsed;let guard=0;while(accumulator>=dt&&guard<20){stepWave(dt);accumulator-=dt;guard++;}render3D();updateDiagnostics();}
+  else if(runMode==="eigen"&&eigen.ready){simTime+=elapsed;updateEigen(simTime);render3D();updateDiagnostics();}
+  requestAnimationFrame(animate);
+}
+
+function runSelfTests(){
+  const sq=[{x:0,y:0},{x:10,y:0},{x:10,y:10},{x:0,y:10}];
+  console.assert(insidePolygon({x:5,y:5},sq),"insidePolygon inside failed");
+  console.assert(!insidePolygon({x:15,y:5},sq),"insidePolygon outside failed");
+  console.assert(Math.abs(triArea({x:0,y:0},{x:10,y:0},{x:0,y:10})-50)<1e-12,"triArea failed");
+  const eig=jacobiEigen([Float64Array.from([2,0]),Float64Array.from([0,5])]);
+  const ev=eig.values.slice().sort((a,b)=>a-b);console.assert(Math.abs(ev[0]-2)<1e-9&&Math.abs(ev[1]-5)<1e-9,"Jacobi diagonal test failed");
+  console.assert(Math.abs((1+0.2*.01)-(1+0.2*.01))<1e-15,"damping denominator test failed");
+  console.log("FEM Wave Laboratory self-tests passed");
+}
+
+// Drawing events
+drawCanvas.addEventListener("pointerdown",e=>{if(interactionMode!=="draw")return;drawing=true;stopAll();clearMesh();boundary=[pointer(e,drawCanvas)];message("그리는 중입니다. 마우스를 떼면 폐곡선으로 닫힙니다.");render2D();});
+drawCanvas.addEventListener("pointermove",e=>{if(!drawing)return;const p=pointer(e,drawCanvas),last=boundary[boundary.length-1];if(!last||dist(p,last)>3){boundary.push(p);render2D();}});
+window.addEventListener("pointerup",()=>{if(!drawing)return;drawing=false;if(boundary.length>8){const first=boundary[0],last=boundary[boundary.length-1];if(dist(first,last)>2)boundary.push({...first});message("영역이 준비되었습니다. Mesh 생성 / FEM 조립을 누르세요.");}else message("영역이 너무 작습니다. 더 크게 그리세요.");render2D();});
+viewCanvas.addEventListener("pointerdown",e=>{draggingView=true;lastViewPoint=pointer(e,viewCanvas);});
+window.addEventListener("pointermove",e=>{if(!draggingView)return;const p=pointer(e,viewCanvas),dx=p.x-lastViewPoint.x,dy=p.y-lastViewPoint.y;rotZ+=dx*.01;rotX-=dy*.01;rotX=Math.max(.18,Math.min(1.45,rotX));lastViewPoint=p;render3D();});
+window.addEventListener("pointerup",()=>{draggingView=false;});
+viewCanvas.addEventListener("wheel",e=>{e.preventDefault();zoom*=e.deltaY>0?.92:1.08;zoom=Math.max(.3,Math.min(3,zoom));render3D();},{passive:false});
+
+$("drawModeBtn").addEventListener("click",()=>{stopAll();interactionMode="draw";boundary=[];clearMesh();message("새 영역을 그리세요.");render2D();setStatus("그리기 모드");});
+$("circleBtn").addEventListener("click",createCircle);
+$("buildBtn").addEventListener("click",buildMesh);
+$("waveBtn").addEventListener("click",()=>{if(!nodes.length){message("먼저 Mesh를 생성하세요.");return;}runMode=runMode==="wave"?"idle":"wave";if(runMode==="wave"){simTime=0;accumulator=0;$("waveBtn").textContent="일반 파동 정지";$("eigenPlayBtn").textContent="고유모드 진동 시작";}else $("waveBtn").textContent="일반 파동 시작";updateDiagnostics();});
+$("pulseBtn").addEventListener("click",addPulse);
+$("resetBtn").addEventListener("click",()=>{stopAll();boundary=[];interactionMode="draw";clearMesh();message("초기화되었습니다.");render2D();setStatus("대기");});
+$("eigenSolveBtn").addEventListener("click",solveEigenmode);
+$("eigenPlayBtn").addEventListener("click",()=>{if(!eigen.ready)return;runMode=runMode==="eigen"?"idle":"eigen";simTime=0;if(runMode==="eigen"){$("eigenPlayBtn").textContent="고유모드 진동 정지";$("waveBtn").textContent="일반 파동 시작";}else $("eigenPlayBtn").textContent="고유모드 진동 시작";updateDiagnostics();});
+controls.boundaryType.addEventListener("change",()=>{if(nodes.length){buildMesh();}else render2D();});
+Object.values(controls).forEach(el=>el.addEventListener("input",()=>{updateLabels();render3D();updateDiagnostics();}));
+window.addEventListener("resize",resize);
+
+updateLabels();resize();updateDiagnostics();runSelfTests();requestAnimationFrame(animate);
+</script>
 </body>
 </html>
