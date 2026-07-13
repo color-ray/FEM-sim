@@ -98,7 +98,7 @@
     <section class="panel">
       <div class="panel-title">Eigenmode</div>
       <label for="modeIndex">선택 고유모드 번호</label><input id="modeIndex" type="range" min="1" max="40" step="1" value="2"><div class="value-line"><span>노이만 1번은 영모드 가능</span><span id="modeIndexValue">2</span></div>
-      <label for="eigenMaxDof">고유모드 탐색 깊이</label><input id="eigenMaxDof" type="range" min="24" max="96" step="8" value="64"><div class="value-line"><span>클수록 정확·느림</span><span id="eigenMaxDofValue">64</span></div>
+      <label for="eigenMaxDof">고윳값 계산 자유도</label><input id="eigenMaxDof" type="range" min="32" max="1000" step="8" value="1000"><div class="value-line"><span>최대 1000 · 매우 느릴 수 있음</span><span id="eigenMaxDofValue">1000</span></div>
       <button id="eigenSolveBtn">선택 고유모드 계산</button>
       <button id="eigenPlayBtn" class="secondary" disabled>고유모드 진동 시작</button>
     </section>
@@ -358,7 +358,12 @@ function solveEigenmode(){
       if(n<2){setStatus("자유도 부족","warn");message("고유값 계산에 필요한 자유도가 부족합니다.");return;}
       if(modeNo>n){setStatus("모드 번호 초과","warn");message("선택한 모드 번호가 자유도 수보다 큽니다.");return;}
       const requested=Number(controls.eigenMaxDof.value);
-      const basisSize=Math.min(n,Math.max(modeNo+24,requested));
+      const basisSize=Math.min(n,Math.max(modeNo+32,requested));
+      if(basisSize>=500){
+        message("고윳값 계산 자유도 "+basisSize+"로 계산합니다. 브라우저가 오래 멈춘 것처럼 보일 수 있습니다.");
+      } else if(basisSize>=192){
+        message("고윳값 계산 자유도 "+basisSize+"로 계산합니다. 노드가 많으면 시간이 걸릴 수 있습니다.");
+      }
       const result=lanczosLowestModes(dofs,basisSize);
       if(result.order.length<modeNo){setStatus("고유모드 탐색 실패","warn");message("충분한 Lanczos 기저를 만들지 못했습니다. 탐색 깊이를 늘려 다시 계산하세요.");return;}
       const pick=result.order[modeNo-1],ritz=pick.i;
