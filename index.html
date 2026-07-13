@@ -64,7 +64,54 @@
     .legend-text { display:flex; justify-content:space-between; color:#8291a5; font-size:9px; margin-top:4px; }
     .small { color:var(--muted); font-size:10px; line-height:1.5; }
     .warning { color:var(--warn); }
-    @media (max-width: 1100px) { body { grid-template-columns:330px 1fr; } .canvas-panel:nth-of-type(2) { display:none; } }
+    @media (max-width: 1100px) {
+      body {
+        grid-template-columns: 320px minmax(0, 1fr);
+        grid-template-rows: 50vh 50vh;
+      }
+      .sidebar {
+        grid-column: 1;
+        grid-row: 1 / 3;
+      }
+      .canvas-panel:nth-of-type(1) {
+        grid-column: 2;
+        grid-row: 1;
+        height: 50vh;
+        border-bottom: 1px solid var(--border);
+      }
+      .canvas-panel:nth-of-type(2) {
+        display: block;
+        grid-column: 2;
+        grid-row: 2;
+        height: 50vh;
+      }
+    }
+    @media (max-width: 720px) {
+      html, body { overflow: auto; }
+      body {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 55vh 55vh;
+      }
+      .sidebar {
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+        height: auto;
+        max-height: none;
+      }
+      .canvas-panel:nth-of-type(1) {
+        grid-column: 1;
+        grid-row: 2;
+        height: 55vh;
+      }
+      .canvas-panel:nth-of-type(2) {
+        display: block;
+        grid-column: 1;
+        grid-row: 3;
+        height: 55vh;
+      }
+    }
   </style>
 </head>
 <body>
@@ -105,7 +152,7 @@
 
     <section class="panel">
       <div class="panel-title">View</div>
-      <label for="heightScale">3D 높이 배율</label><input id="heightScale" type="range" min="20" max="360" step="10" value="150"><div class="value-line"><span>시각적 높이</span><span id="heightScaleValue">150</span></div>
+      <label for="heightScale">3D 높이 배율</label><input id="heightScale" type="range" min="20" max="500" step="10" value="200"><div class="value-line"><span>시각적 높이</span><span id="heightScaleValue">200</span></div>
       <label for="normalization">높이 표시</label><select id="normalization"><option value="auto">프레임별 자동 정규화</option><option value="fixed">초기 진폭 기준</option></select>
       <label for="meshOpacity">Mesh 선명도</label><input id="meshOpacity" type="range" min="0" max="1" step="0.05" value="0.35"><div class="value-line"><span>요소 경계</span><span id="meshOpacityValue">0.35</span></div>
     </section>
@@ -160,7 +207,7 @@ let nodes=[], triangles=[], edges=[], boundaryNodes=new Set();
 let mass=[], stiffness=[];
 let u=[], uPrev=[], initialAmplitude=1;
 let runMode="idle", simTime=0, lastFrame=performance.now(), accumulator=0;
-let rotX=0.92, rotZ=0.68, zoom=1, draggingView=false, lastViewPoint=null;
+let rotX=1.08, rotZ=0.68, zoom=1, draggingView=false, lastViewPoint=null;
 let eigen={ready:false, lambda:0, vector:[], residual:NaN, mode:0, omega0:0, frequency:0, period:Infinity};
 
 function setStatus(label, kind="") {
