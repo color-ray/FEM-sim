@@ -98,7 +98,7 @@
     <section class="panel">
       <div class="panel-title">Eigenmode</div>
       <label for="modeIndex">선택 고유모드 번호</label><input id="modeIndex" type="range" min="1" max="40" step="1" value="2"><div class="value-line"><span>노이만 1번은 영모드 가능</span><span id="modeIndexValue">2</span></div>
-      <label for="eigenMaxDof">고유값 계산 최대 자유도</label><input id="eigenMaxDof" type="range" min="60" max="260" step="20" value="180"><div class="value-line"><span>클수록 느림</span><span id="eigenMaxDofValue">180</span></div>
+      <label for="eigenMaxDof">고유모드 탐색 깊이</label><input id="eigenMaxDof" type="range" min="24" max="96" step="8" value="64"><div class="value-line"><span>클수록 정확·느림</span><span id="eigenMaxDofValue">64</span></div>
       <button id="eigenSolveBtn">선택 고유모드 계산</button>
       <button id="eigenPlayBtn" class="secondary" disabled>고유모드 진동 시작</button>
     </section>
@@ -285,27 +285,118 @@ function jacobiEigen(A,maxIter=0){
   return {values:Array.from({length:n},(_,i)=>A[i][i]),vectors:V};
 }
 
+function applyNormalizedOperator(x,dofs,local){
+  const y=new Float64Array(dofs.length);
+  for(let r=0;r<dofs.length;r++){
+    const gi=dofs[r],mi=Math.sqrt(Math.max(mass[gi],1e-30));
+    let sum=0;
+    for(const e of stiffness[gi]){
+      const c=local.get(e.j);
+      if(c===undefined)continue;
+      const mj=Math.sqrt(Math.max(mass[e.j],1e-30));
+      sum+=e.value*x[c]/(mi*mj);
+    }
+    y[r]=sum;
+  }
+  return y;
+}
+function dot(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s;}
+function norm2(a){return Math.sqrt(Math.max(dot(a,a),0));}
+function axpy(y,a,x){for(let i=0;i<y.length;i++)y[i]+=a*x[i];}
+function scaleVec(x,a){for(let i=0;i<x.length;i++)x[i]*=a;return x;}
+function lanczosLowestModes(dofs,basisSize){
+  const n=dofs.length,local=new Map(dofs.map((g,i)=>[g,i]));
+  const m=Math.min(n,Math.max(12,basisSize));
+  // Gershgorin upper bound. B = rho I - A has the lowest modes of A
+  // as its largest modes, which makes ordinary Lanczos converge reliably.
+  let rho=0;
+  for(let r=0;r<n;r++){
+    const gi=dofs[r],mi=Math.sqrt(Math.max(mass[gi],1e-30));let rowSum=0;
+    for(const e of stiffness[gi]){
+      const c=local.get(e.j);if(c===undefined)continue;
+      rowSum+=Math.abs(e.value/(mi*Math.sqrt(Math.max(mass[e.j],1e-30))));
+    }
+    rho=Math.max(rho,rowSum);
+  }
+  rho=Math.max(rho,1e-12)*1.001;
+  const Q=[],alpha=[],beta=[];
+  let q=new Float64Array(n);
+  for(let i=0;i<n;i++)q[i]=1+0.31*Math.sin((i+1)*1.61803398875)+0.17*Math.cos((i+1)*0.72360679775);
+  scaleVec(q,1/Math.max(norm2(q),1e-30));
+  let qPrev=new Float64Array(n),bPrev=0;
+  for(let j=0;j<m;j++){
+    Q.push(q.slice());
+    const Aq=applyNormalizedOperator(q,dofs,local),z=new Float64Array(n);
+    for(let i=0;i<n;i++)z[i]=rho*q[i]-Aq[i];
+    if(j>0)axpy(z,-bPrev,qPrev);
+    const a=dot(q,z);alpha.push(a);axpy(z,-a,q);
+    for(let pass=0;pass<2;pass++){
+      for(const qi of Q){const proj=dot(qi,z);if(Math.abs(proj)>1e-14)axpy(z,-proj,qi);}
+    }
+    const b=norm2(z);
+    if(j<m-1)beta.push(b);
+    if(b<1e-11)break;
+    qPrev=q;q=z;scaleVec(q,1/b);bPrev=b;
+  }
+  const k=alpha.length,T=zeroMatrix(k);
+  for(let i=0;i<k;i++){
+    T[i][i]=alpha[i];
+    if(i<k-1){T[i][i+1]=beta[i]||0;T[i+1][i]=beta[i]||0;}
+  }
+  const small=jacobiEigen(T,Math.max(300,k*k*20));
+  const converted=small.values.map(mu=>Math.max(0,rho-mu));
+  const order=converted.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
+  return {Q,values:converted,vectors:small.vectors,order,dofs};
+}
 function solveEigenmode(){
   if(!nodes.length){message("먼저 Mesh를 생성하세요.");return;}
-  stopAll();setStatus("고유값 계산 중","warn");
-  const dofs=freeDofs(),n=dofs.length,limit=Number(controls.eigenMaxDof.value),modeNo=Number(controls.modeIndex.value);
-  if(n<2){setStatus("자유도 부족","warn");message("고유값 계산에 필요한 자유도가 부족합니다.");return;}
-  if(n>limit){setStatus("고유값 계산 제한","warn");message("자유도 "+n+"개가 설정한 한계 "+limit+"개를 초과합니다. 격자 간격을 키우거나 최대 자유도를 늘리세요.");return;}
-  if(modeNo>n){setStatus("모드 번호 초과","warn");message("선택한 모드 번호가 자유도 수보다 큽니다.");return;}
-  const local=new Map(dofs.map((g,i)=>[g,i])),A=zeroMatrix(n);
-  for(let r=0;r<n;r++){const gi=dofs[r],mi=Math.sqrt(mass[gi]);for(const e of stiffness[gi]){const c=local.get(e.j);if(c===undefined)continue;A[r][c]+=e.value/(mi*Math.sqrt(mass[e.j]));}}
-  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const avg=.5*(A[i][j]+A[j][i]);A[i][j]=A[j][i]=avg;}
-  const result=jacobiEigen(A),order=result.values.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v),pick=order[modeNo-1];
-  const phi=new Array(nodes.length).fill(0);for(let l=0;l<n;l++){const g=dofs[l];phi[g]=result.vectors[l][pick.i]/Math.sqrt(mass[g]);}
-  let norm=0;for(let i=0;i<phi.length;i++)norm+=mass[i]*phi[i]*phi[i];norm=Math.sqrt(Math.max(norm,1e-30));for(let i=0;i<phi.length;i++)phi[i]/=norm;
-  let sign=1;for(const v of phi){if(Math.abs(v)>1e-10){sign=v<0?-1:1;break;}}if(sign<0)for(let i=0;i<phi.length;i++)phi[i]*=-1;
-  const lambda=Math.max(0,pick.v),res=residual(phi,lambda),mpp=Number(controls.scaleMm.value)/1000,c=Number(controls.waveSpeed.value),lambdaPhysical=lambda/(mpp*mpp),omega0=c*Math.sqrt(lambdaPhysical),freq=omega0/(2*Math.PI);
-  eigen={ready:true,lambda,vector:phi,residual:res,mode:modeNo,omega0,frequency:freq,period:freq>1e-14?1/freq:Infinity};
-  u=phi.slice();uPrev=phi.slice();initialAmplitude=Math.max(maxAbs(phi),1e-9);simTime=0;$("eigenPlayBtn").disabled=false;
-  setStatus("고유모드 계산 완료","ok");message("고유모드 "+modeNo+"번을 계산했습니다. 잔차와 주파수를 진단 패널에서 확인하세요.");updateDiagnostics();render3D();
+  stopAll();setStatus("고유모드 계산 중","warn");
+  // Let the status repaint before the numerical work starts.
+  setTimeout(()=>{
+    try{
+      const dofs=freeDofs(),n=dofs.length,modeNo=Number(controls.modeIndex.value);
+      if(n<2){setStatus("자유도 부족","warn");message("고유값 계산에 필요한 자유도가 부족합니다.");return;}
+      if(modeNo>n){setStatus("모드 번호 초과","warn");message("선택한 모드 번호가 자유도 수보다 큽니다.");return;}
+      const requested=Number(controls.eigenMaxDof.value);
+      const basisSize=Math.min(n,Math.max(modeNo+24,requested));
+      const result=lanczosLowestModes(dofs,basisSize);
+      if(result.order.length<modeNo){setStatus("고유모드 탐색 실패","warn");message("충분한 Lanczos 기저를 만들지 못했습니다. 탐색 깊이를 늘려 다시 계산하세요.");return;}
+      const pick=result.order[modeNo-1],ritz=pick.i;
+      const y=new Float64Array(n);
+      for(let j=0;j<result.Q.length;j++){
+        const coeff=result.vectors[j][ritz];
+        for(let i=0;i<n;i++)y[i]+=coeff*result.Q[j][i];
+      }
+      const phi=new Array(nodes.length).fill(0);
+      for(let l=0;l<n;l++){
+        const g=dofs[l];
+        phi[g]=y[l]/Math.sqrt(Math.max(mass[g],1e-30));
+      }
+      let mnorm=0;for(let i=0;i<phi.length;i++)mnorm+=mass[i]*phi[i]*phi[i];
+      mnorm=Math.sqrt(Math.max(mnorm,1e-30));for(let i=0;i<phi.length;i++)phi[i]/=mnorm;
+      let sign=1;for(const v of phi){if(Math.abs(v)>1e-10){sign=v<0?-1:1;break;}}
+      if(sign<0)for(let i=0;i<phi.length;i++)phi[i]*=-1;
+      const lambda=Math.max(0,pick.v),res=residualFree(phi,lambda,dofs);
+      const mpp=Number(controls.scaleMm.value)/1000,c=Number(controls.waveSpeed.value);
+      const lambdaPhysical=lambda/(mpp*mpp),omega0=c*Math.sqrt(lambdaPhysical),freq=omega0/(2*Math.PI);
+      eigen={ready:true,lambda,vector:phi,residual:res,mode:modeNo,omega0,frequency:freq,period:freq>1e-14?1/freq:Infinity};
+      u=phi.slice();uPrev=phi.slice();initialAmplitude=Math.max(maxAbs(phi),1e-9);simTime=0;
+      $("eigenPlayBtn").disabled=false;
+      setStatus("고유모드 계산 완료","ok");
+      message("고유모드 "+modeNo+"번 계산 완료. 이제 '고유모드 진동 시작'을 누르세요.");
+      updateDiagnostics();render3D();
+    }catch(err){
+      console.error(err);setStatus("고유모드 계산 오류","bad");message("고유모드 계산 중 오류: "+err.message);
+    }
+  },30);
 }
-function residual(phi,lambda){
-  let nr=0,nk=0;for(let i=0;i<phi.length;i++){let k=0;for(const e of stiffness[i])k+=e.value*phi[e.j];const r=k-lambda*mass[i]*phi[i];nr+=r*r;nk+=k*k;}return Math.sqrt(nr)/Math.max(Math.sqrt(nk),1e-30);
+function residualFree(phi,lambda,dofs){
+  let nr=0,nk=0;
+  for(const i of dofs){
+    let k=0;for(const e of stiffness[i])k+=e.value*phi[e.j];
+    const r=k-lambda*mass[i]*phi[i];nr+=r*r;nk+=k*k;
+  }
+  return Math.sqrt(nr)/Math.max(Math.sqrt(nk),1e-30);
 }
 function dampedModalFactor(t){
   const g=Number(controls.damping.value),w=eigen.omega0;
